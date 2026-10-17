@@ -1,12 +1,3 @@
-// ==============================================================================
-// FILE: src/components/StoryModal.jsx
-// PURPOSE: Expanded narrative modal presenting the roastery origin, ethical bean sourcing,
-//          and community focus of Beardista Brew in Caloocan City.
-// ACADEMIC NOTE:
-// Provides historical depth to the customer-facing interface, detailing
-// the technical and social values that substantiate the brand pillars.
-// ==============================================================================
-
 import React from 'react';
 
 /**

@@ -1,12 +1,3 @@
-// ==============================================================================
-// FILE: src/components/WhyChooseUs.jsx
-// PURPOSE: 4-Column brand value pillars highlighting quality, creativity, and community.
-// ACADEMIC NOTE:
-// Demonstrates grid responsiveness: 1 column on mobile, 2 columns on tablet,
-// and 4 columns on desktop (grid-cols-1 sm:grid-cols-2 md:grid-cols-4).
-// Employs crisp vector iconography rendered in SVG without external icon dependency bloat.
-// ==============================================================================
-
 import React from 'react';
 
 /**

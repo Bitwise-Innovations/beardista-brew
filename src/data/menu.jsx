@@ -1,4 +1,3 @@
-// Import your local images from the assets folder
 import alonImg from '../assets/alon at apoy.png';
 import goateeImg from '../assets/goatee.png';
 import chickenImg from '../assets/chicken fingers.jpg';

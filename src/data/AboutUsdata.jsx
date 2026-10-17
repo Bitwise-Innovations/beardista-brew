@@ -1,23 +1,3 @@
-// ==============================================================================
-// FILE: src/data/aboutUsData.js
-// PURPOSE: Central mock database module for the 'Our Story' (About Us) page.
-// 
-// EXPLANATION FOR ACADEMIC PANEL DEFENSE:
-// 1. Database Decoupling:
-//    - In a production environment, this information would be retrieved
-//      asynchronously from a persistent database (e.g., PostgreSQL, MongoDB,
-//      or Firebase Cloud Firestore) via a REST/GraphQL API endpoint.
-//    - To maintain clean separation of concerns, no text or records are
-//      hardcoded directly within the UI layout components.
-// 2. Data Structure Schema:
-//    - `storyNarrative`: Chronological narrative chapters detailing the cafe's
-//      founding during the 2020 pandemic and its community roots.
-//    - `mottoData`: Core brand mission statement and background banner metadata.
-//    - `visionaryData`: Profile of Founder & Head Roaster Mr. Jim Carlo Gorospe.
-//    - `teamMembers`: Collection of barista staff profiles with personal fun facts.
-// ==============================================================================
-
-// Narrative chapters displayed beside the primary signage image
 export const storyNarrative = [
   {
     id: 1,

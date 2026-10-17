@@ -1,12 +1,3 @@
-// ==============================================================================
-// FILE: src/components/WhatsBrewing.jsx
-// PURPOSE: High-contrast Dark Navy block highlighting ongoing events
-//          and featured specialty creations (Latte Art Throwdown and Tsamporado).
-// ACADEMIC NOTE:
-// Provides strong visual rhythm through tonal inversion (Navy #19244E canvas
-// populated with high-contrast warm cream #FFF3E7 cards).
-// ==============================================================================
-
 import React from 'react';
 
 /**

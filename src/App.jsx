@@ -1,11 +1,6 @@
-// ==============================================================================
-// FILE: src/App.jsx
-// PURPOSE: Root component orchestrating the view-only Beardista Brew Digital Menu.
-// ==============================================================================
-
 import React, { useState } from 'react';
 
-// Import static data models from the centralized data module
+// --- CUSTOMER DATA ---
 import {
   customerFavoritesData,
   whatsBrewingData,
@@ -16,7 +11,7 @@ import {
   faqData
 } from './data/menu.jsx';
 
-// Import presentational layout sections
+// --- CUSTOMER COMPONENTS ---
 import { Navbar } from './components/Navbar.jsx';
 import { Hero } from './components/Hero.jsx';
 import { CustomerFavorites } from './components/CustomerFavorites.jsx';
@@ -29,15 +24,24 @@ import { CustomerVoice } from './components/CustomerVoice.jsx';
 import { StayConnected } from './components/StayConnected.jsx';
 import { Footer } from './components/Footer.jsx';
 import MenuPage from './components/MenuPage.jsx';
-import { FAQSection } from './components/FAQSection.jsx'; // <-- FIXED CAPITALIZATION
+import { FAQSection } from './components/FAQSection.jsx';
 
-// Import modal inspection dialogs
+// --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from './components/ItemDetailsModal.jsx';
 import { SurveyModal } from './components/SurveyModal.jsx';
 import { EventDetailsModal } from './components/EventDetailsModal.jsx';
 import { StoryModal } from './components/StoryModal.jsx';
 
-export default function App() {
+// --- ADMIN COMPONENTS ---
+import { AdminLogin } from "./components/AdminLogin.jsx";
+import { AdminPortal } from "./components/AdminPortal.jsx";
+import { MobileLogin } from "./components/mobile/MobileLogin.jsx";
+import { MobileAdminLayout } from "./components/mobile/MobileAdminLayout.jsx";
+
+/**
+ * CustomerApp: Represents the public-facing customer digital menu.
+ */
+export const CustomerApp = ({ onOpenAdminLogin }) => {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
@@ -60,32 +64,41 @@ export default function App() {
     });
   };
 
+  const handleNavigate = (page) => {
+    if (page === 'admin-login' || page === 'admin') {
+      if (onOpenAdminLogin) onOpenAdminLogin();
+      return;
+    }
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-[#FFF3E7] text-[#111111] flex flex-col antialiased selection:bg-[#E58422] selection:text-white">
       
       {currentPage === 'story' ? (
         <OurStory
-          onNavigate={(page) => setCurrentPage(page)}
+          onNavigate={handleNavigate}
           onOpenSurvey={() => setIsSurveyOpen(true)}
         />
       ) : currentPage === 'menu' ? (
         <>
           <Navbar
             currentPage={currentPage}
-            onNavigate={(page) => setCurrentPage(page)}
+            onNavigate={handleNavigate}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <MenuPage
-            onNavigate={(page) => setCurrentPage(page)}
+            onNavigate={handleNavigate}
             onSelectItem={(item) => setSelectedItem(item)}
           />
-          <Footer />
+          <Footer onNavigate={handleNavigate} />
         </>
       ) : (
         <>
           <Navbar
             currentPage={currentPage}
-            onNavigate={(page) => setCurrentPage(page)}
+            onNavigate={handleNavigate}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <Hero onExploreMenu={handleExploreMenu} />
@@ -112,10 +125,7 @@ export default function App() {
           />
           <StayConnected wifi={wifiData} />
           
-          {/* <-- FIXED COMPONENT RENDER --> */}
-          <FAQSection faqs={faqData} />
-          
-          <Footer />
+          <Footer onNavigate={handleNavigate} />
         </>
       )}
 
@@ -137,5 +147,65 @@ export default function App() {
         onClose={() => setIsStoryOpen(false)}
       />
     </div>
+  );
+};
+
+/**
+ * MAIN ROUTER APP
+ */
+export default function App() {
+  const [currentView, setCurrentView] = useState('customer');
+
+  if (currentView === 'admin-mobile-login') {
+    return (
+      <MobileLogin
+        onLoginSuccess={() => setCurrentView('admin-mobile-dashboard')}
+        onBackToCustomer={() => setCurrentView('customer')}
+        onSwitchToDesktop={() => setCurrentView('admin-login')}
+      />
+    );
+  }
+
+  if (currentView === 'admin-mobile-dashboard') {
+    return (
+      <MobileAdminLayout
+        onLogout={() => setCurrentView('admin-mobile-login')}
+        onSwitchToDesktop={() => setCurrentView('admin-dashboard')}
+        onSwitchToCustomerMenu={() => setCurrentView('customer')}
+      />
+    );
+  }
+
+  if (currentView === 'admin-login') {
+    return (
+      <AdminLogin
+        onLoginSuccess={() => setCurrentView('admin-dashboard')}
+        onBackToCustomer={() => setCurrentView('customer')}
+        onSwitchToMobileLogin={() => setCurrentView('admin-mobile-login')}
+      />
+    );
+  }
+
+  if (currentView === 'admin-dashboard') {
+    return (
+      <AdminPortal
+        onSwitchToCustomerMenu={() => setCurrentView('customer')}
+        onLogout={() => setCurrentView('admin-login')}
+        onSwitchToMobileView={() => setCurrentView('admin-mobile-dashboard')}
+      />
+    );
+  }
+
+  return (
+    <CustomerApp
+      onOpenAdminLogin={() => {
+        if (window.innerWidth < 768) {
+          setCurrentView('admin-mobile-login');
+        } else {
+          setCurrentView('admin-login');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
+    />
   );
 }

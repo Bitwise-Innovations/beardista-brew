@@ -2,10 +2,6 @@ import React, { useState } from 'react';
 import ItemDetailsModal from './ItemDetailsModal.jsx';
 import hiromiImg from '../assets/hiromi.png'; // <-- Added the import for hiromi.png
 
-// ==============================================================================
-// 1. MOCK DATA ARRAY
-// Contains test items for 'Signatures' and 'Pasta' with complete flavor and ingredient details.
-// ==============================================================================
 const mockCafeData = [
   // --- SIGNATURES CATEGORY ---
   {

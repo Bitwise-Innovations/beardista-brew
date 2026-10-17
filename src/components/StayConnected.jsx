@@ -1,9 +1,3 @@
-// ==============================================================================
-// FILE: src/components/StayConnected.jsx
-// PURPOSE: WiFi connectivity and digital guest station displaying network SSID,
-//          password, and a visual QR code for frictionless mobile scanning.
-// ==============================================================================
-
 import React, { useState } from 'react';
 import qrImg from '../assets/wifi_qr.jpg'; // <-- Imported local QR image
 

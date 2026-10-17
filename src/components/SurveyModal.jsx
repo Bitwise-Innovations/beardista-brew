@@ -1,23 +1,3 @@
-// ==============================================================================
-// FILE: src/components/SurveyModal.jsx
-// PURPOSE: Multi-step Customer Survey & Feedback Modal for Beardista Brew.
-// 
-// EXPLANATION FOR ACADEMIC PANEL DEFENSE:
-// 1. Centralized State Management (The Database Proof):
-//    - Per requirements, all collected inputs across Step 1 and Step 2 are
-//      consolidated into a single `formData` state object.
-//    - Tracks: name, ageGroup, visitFrequency, orderPreferences, orderHighlight,
-//      rating, and notes.
-//    - `currentStep` tracks the modal flow (1: Profile, 2: Experience, 3: Success).
-// 2. Mock Database Functionality:
-//    - On submission, executes: `console.log("Simulating MySQL Database POST request:", formData)`
-//      proving to the panel that the data payload is formatted and ready for an API route.
-// 3. Strict Design & Flow Fidelity:
-//    - Step 1: Customer Profile, Age Group, 2x2 Visit Frequency grid, Order Preferences pills.
-//    - Step 2: 5-point emoticon rating scale and Additional Notes textarea.
-//    - Step 3: Thank You screen with checkmark badge and Done close trigger.
-// ==============================================================================
-
 import React, { useState } from 'react';
 
 /**

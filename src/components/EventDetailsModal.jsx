@@ -1,23 +1,3 @@
-// ==============================================================================
-// FILE: src/components/EventDetailsModal.jsx
-// PURPOSE: Multi-step Event Registration & Ticket Reservation Modal Dialog.
-//          Replicates Image 1 (Competitor Step 1), Image 2 (Spectator Form),
-//          Image 3 (Competitor Step 2), and Image 4 (Thank You / Confirmation).
-//
-// EXPLANATION FOR ACADEMIC PANEL DEFENSE:
-// 1. Controlled State Architecture:
-//    - Tracks active participant role ('competitor' vs 'spectator') using useState.
-//    - Dynamically conditionally renders form fields (Step 1 vs Step 2 vs Spectator).
-// 2. Multi-Step Wizard Flow:
-//    - Competitors complete a 2-step registration: Profile -> Barista Background -> Receipt.
-//    - Spectators complete a streamlined 1-step reservation -> Receipt.
-// 3. Embedded Terms & Conditions Modal:
-//    - Displays the 5 official throwdown clauses directly in an accessible overlay.
-// 4. Strict Design System Fidelity:
-//    - Matching Beardista signature palette: #FFF3E7 (Warm Cream), #19244E (Deep Navy),
-//      #E58422 (Warm Amber/Orange), rounded-3xl container, and bespoke radio cards.
-// ==============================================================================
-
 import React, { useState } from 'react';
 
 /**
