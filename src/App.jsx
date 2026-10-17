@@ -9,7 +9,7 @@ import {
   reviewsData,
   wifiData,
   faqData
-} from './data/menu.jsx';
+} from './config/data/menu.js';
 
 // --- CUSTOMER COMPONENTS ---
 import { Navbar } from './components/Navbar.jsx';

@@ -11,7 +11,7 @@ import {
   initialContentData,
   initialEventsData,
   initialSettingsData
-} from '../data/adminMockData.jsx';
+} from '../config/data/adminMockData.js';
 
 // Pages / Views
 import { LoginView } from './pages/LoginView.jsx';
