@@ -61,7 +61,7 @@ export const ItemDetailsModal = ({ item, onClose }) => {
         </div>
 
         {/* ================================================================== */}
-        {/* RIGHT PANEL: Drink Name, Price, Description, Flavor, and Contains  */}
+        {/* RIGHT PANEL: Drink Name  */}
         {/* ================================================================== */}
         <div className="w-full md:w-1/2 h-full p-6 sm:p-8 md:p-10 flex flex-col justify-start overflow-y-auto bg-white">
           

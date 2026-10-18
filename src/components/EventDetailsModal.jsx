@@ -282,7 +282,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
             </div>
 
             {/* ---------------------------------------------------------------- */}
-            {/* STEP 1: ROLE SELECTION & PERSONAL DETAILS (IMAGES 1 & 2)         */}
+            {/* ROLE SELECTION & PERSONAL DETAILS      */}
             {/* ---------------------------------------------------------------- */}
             {currentStep === 1 && (
               <div className="space-y-5">
@@ -415,7 +415,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
                         <label className="block text-[11px] font-black tracking-wider text-[#19244E] uppercase">
                           AGE <span className="text-[#E58422]">*</span>
                         </label>
-                        <span className="text-[10px] text-gray-400 font-semibold">Max 99 yrs</span>
+                        <span className="text-[10px] text-gray-400 font-semibold"></span>
                       </div>
                       <div className="relative">
                         <input
@@ -439,7 +439,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
                         <label className="block text-[11px] font-black tracking-wider text-[#19244E] uppercase">
                           EMAIL ADDRESS <span className="text-[#E58422]">*</span>
                         </label>
-                        <span className="text-[10px] text-gray-400 font-semibold">Must have @ &amp; .com</span>
+                        <span className="text-[10px] text-gray-400 font-semibold"></span>
                       </div>
                       <input
                         type="email"
@@ -706,7 +706,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
           </div>
         ) : (
           /* ================================================================== */
-          /* VIEW 3: CONFIRMATION / THANK YOU MODAL (IMAGE 4)                   */
+          /* CONFIRMATION           */
           /* ================================================================== */
           <div className="p-8 sm:p-10 text-center">
             {/* Close 'X' Button at top-right */}
@@ -789,7 +789,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
       </div>
 
       {/* ====================================================================== */}
-      {/* OVERLAY: 5 OFFICIAL TERMS & CONDITIONS DIALOG                          */}
+      {/* OFFICIAL TERMS & CONDITIONS DIALOG                          */}
       {/* ====================================================================== */}
       {showTermsModal && (
         <div

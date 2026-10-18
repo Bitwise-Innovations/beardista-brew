@@ -10,11 +10,9 @@ export const SurveyModal = ({ isOpen, onClose }) => {
   // Guard clause: Return null if modal is not open to avoid unnecessary DOM rendering
   if (!isOpen) return null;
 
-  // ============================================================================
   // STATE MANAGEMENT
-  // ============================================================================
 
-  // Single formData state object holding all user inputs across the steps
+  // state object holding all user inputs across the steps
   const [formData, setFormData] = useState({
     name: '',
     ageGroup: '',
@@ -96,10 +94,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
       >
         
-        {/* ================================================================== */}
         {/* MODAL HEADER: Title, Subtitle, Close Button & Progress Bar          */}
-        {/* (Rendered on Step 1 and Step 2 as shown in the reference images)    */}
-        {/* ================================================================== */}
         {currentStep !== 3 && (
           <div className="pt-6 px-6 sm:px-8 bg-white shrink-0">
             <div className="flex items-start justify-between pb-4">
@@ -134,14 +129,11 @@ export const SurveyModal = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {/* ================================================================== */}
         {/* MODAL BODY CONTAINER (Scrollable)                                  */}
-        {/* ================================================================== */}
         <div className="overflow-y-auto grow p-6 sm:p-8">
           
-          {/* ================================================================ */}
           {/* STEP 1: CUSTOMER PROFILE & ORDER PREFERENCES                      */}
-          {/* ================================================================ */}
+
           {currentStep === 1 && (
             <div className="space-y-8 animate-fadeIn">
               
@@ -296,9 +288,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* ================================================================ */}
-          {/* STEP 2: EXPERIENCE & ADDITIONAL NOTES                             */}
-          {/* ================================================================ */}
+          {/* EXPERIENCE & ADDITIONAL NOTES                             */}
           {currentStep === 2 && (
             <div className="space-y-8 animate-fadeIn">
               
@@ -314,7 +304,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
                   How would you rate your overall experience at Beardista Brew today?
                 </label>
 
-                {/* 5-Point Emoticon Scale Cards */}
+                {/* 5-Point Scale Cards */}
                 <div className="grid grid-cols-5 gap-2 sm:gap-3">
                   {[
                     { label: 'Very Poor', icon: '😵' },
@@ -350,7 +340,6 @@ export const SurveyModal = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* --- SECTION 2: Additional Notes --- */}
               <div>
                 {/* Section Header */}
                 <div className="flex items-center gap-2.5 text-xl font-extrabold text-[#19244E] pb-3 border-b border-black/5 mb-5">
@@ -377,9 +366,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* ================================================================ */}
           {/* STEP 3: SUCCESS CONFIRMATION                                      */}
-          {/* ================================================================ */}
           {currentStep === 3 && (
             <div className="py-8 sm:py-12 flex flex-col items-center justify-center text-center animate-fadeIn">
               
@@ -416,9 +403,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
 
         </div>
 
-        {/* ================================================================== */}
         {/* MODAL FOOTER ACTIONS                                               */}
-        {/* ================================================================== */}
         {currentStep === 1 && (
           <div className="p-4 sm:p-6 bg-white border-t border-black/5 flex justify-end shrink-0">
             <button

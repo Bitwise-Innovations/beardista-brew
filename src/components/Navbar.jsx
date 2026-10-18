@@ -35,7 +35,7 @@ export const Navbar = ({ onOpenSurvey, currentPage = 'home', onNavigate }) => {
           if (onNavigate) onNavigate('home');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className="font-black text-2xl md:text-3xl text-[#19244E] tracking-tight hover:opacity-90 transition-opacity"
+        className="font-black text-2xl bold md:text-4xl text-[#19244E] tracking-tight hover:opacity-90 transition-opacity"
       >
         Beardista Brew
       </a>
@@ -57,7 +57,7 @@ export const Navbar = ({ onOpenSurvey, currentPage = 'home', onNavigate }) => {
           Home
         </button>
 
-        {/* Dynamic Digital Menu Link */}
+        {/* Digital Menu Link */}
         <button
           onClick={() => {
             if (onNavigate) onNavigate('menu');
@@ -72,7 +72,7 @@ export const Navbar = ({ onOpenSurvey, currentPage = 'home', onNavigate }) => {
           Menu
         </button>
 
-        {/* Navigational link to the full Our Story / About Us page */}
+        {/* Our Story to About Us page */}
         <button
           onClick={() => {
             if (onNavigate) {
@@ -91,7 +91,7 @@ export const Navbar = ({ onOpenSurvey, currentPage = 'home', onNavigate }) => {
           About Us
         </button>
 
-        {/* Scroll link to footer location and social channels */}
+        {/* footer location and social channels */}
         <button
           onClick={() => scrollToSection('contact-section')}
           className="text-[#19244E] text-sm font-semibold tracking-wide hover:text-[#E58422] transition-colors cursor-pointer"
@@ -104,7 +104,7 @@ export const Navbar = ({ onOpenSurvey, currentPage = 'home', onNavigate }) => {
       <div className="flex items-center space-x-3">
         <button
           onClick={onOpenSurvey}
-          className="inline-flex items-center justify-center px-6 py-2.5 bg-[#E58422] hover:bg-[#d47414] text-white text-sm font-semibold rounded-full shadow-sm active:scale-95 transition-all cursor-pointer"
+          className="inline-flex items-center justify-center px-12 py-2.5 bg-[#E58422] hover:bg-[#d47414] text-white text-sm font-semibold rounded-full shadow-sm active:scale-100 transition-all cursor-pointer"
         >
           Take Survey
         </button>

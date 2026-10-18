@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ItemDetailsModal from './ItemDetailsModal.jsx';
-import hiromiImg from '../assets/hiromi.png'; // <-- Added the import for hiromi.png
+import hiromiImg from '../assets/hiromi.png';
 
 const mockCafeData = [
   // --- SIGNATURES CATEGORY ---
@@ -83,17 +83,28 @@ const categoriesList = [
 ];
 
 // ==============================================================================
-// 3. MAIN COMPONENT: MenuPage
+// 2.5 UNIVERSAL SEARCH HELPER
 // ==============================================================================
+const itemMatchesSearch = (item, query) => {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  return item.name.toLowerCase().startsWith(q);
+};
+// 3. MAIN COMPONENT: MenuPage
+
 export default function MenuPage({ onNavigate, onSelectItem }) {
   // STATE 1: Tracks the currently active category. Defaults to 'Signatures'.
   const [activeCategory, setActiveCategory] = useState('Signatures');
 
-  // STATE 2: Optional search input filter for quick text lookup
+  // STATE 2: Universal search input. When it has text, ALL categories are searched.
   const [searchQuery, setSearchQuery] = useState('');
 
   // STATE 3: Local selected item state (fallback when component is tested standalone)
   const [localSelectedItem, setLocalSelectedItem] = useState(null);
+
+  // True whenever the user has typed something in the search bar
+  const isSearching = searchQuery.trim() !== '';
 
   // HANDLER: Card click router
   const handleItemClick = (item) => {
@@ -104,13 +115,31 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
     }
   };
 
+  // HANDLER: Clicking a category leaves search mode and shows that category
+  const handleCategoryClick = (categoryName) => {
+    setSearchQuery('');
+    setActiveCategory(categoryName);
+  };
+
   // FILTERING LOGIC:
+  // - Searching  -> match against every item in every category
+  // - Not searching -> show only the active category
   const filteredItems = mockCafeData.filter((item) => {
-    const matchesCategory = item.category === activeCategory;
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    if (isSearching) {
+      return itemMatchesSearch(item, searchQuery);
+    }
+    return item.category === activeCategory;
   });
+
+  // SEARCH RESULT COUNTS PER CATEGORY (used for the sidebar badges)
+  const matchCounts = {};
+  if (isSearching) {
+    mockCafeData.forEach((item) => {
+      if (itemMatchesSearch(item, searchQuery)) {
+        matchCounts[item.category] = (matchCounts[item.category] || 0) + 1;
+      }
+    });
+  }
 
   return (
     // Outer page container
@@ -118,7 +147,7 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
       <div className="max-w-360 mx-auto flex flex-col md:flex-row">
         
         {/* ================================================================== */}
-        {/* LEFT SIDEBAR: Menu Categories Navigation                           */}
+        {/* Menu Categories Navigation                           */}
         {/* ================================================================== */}
         <aside className="w-full md:w-64 lg:w-72 p-6 md:pr-4 border-r border-black/10 shrink-0">
           {/* Sidebar Section Title */}
@@ -145,26 +174,35 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
           {/* Categories Button List */}
           <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
             {categoriesList.map((category) => {
-              const isActive = activeCategory === category.name;
+              // While searching, no category is "active" because every category is being searched
+              const isActive = !isSearching && activeCategory === category.name;
+              const matchCount = matchCounts[category.name] || 0;
 
               return (
                 <button
                   key={category.name}
-                  onClick={() => setActiveCategory(category.name)}
+                  onClick={() => handleCategoryClick(category.name)}
                   className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs md:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer text-left ${
                     isActive
                       ? 'bg-[#E58422] text-white shadow-md'
                       : 'text-[#19244E] hover:bg-black/5'
-                  }`}
+                  } ${isSearching && matchCount === 0 ? 'opacity-40' : ''}`}
                 >
                   <span className="text-sm shrink-0">{category.icon}</span>
                   <span className="truncate">{category.name}</span>
+
+                  {/* Match count badge: only visible while searching */}
+                  {isSearching && matchCount > 0 && (
+                    <span className="ml-auto bg-[#E58422] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                      {matchCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </nav>
 
-          {/* Connection Feature: Direct link to About Us from the Menu */}
+          {/* Connection Feature */}
           {onNavigate && (
             <div className="hidden md:block mt-8 p-4 bg-white/70 rounded-xl border border-black/10">
               <span className="text-[10px] font-bold text-[#E58422] uppercase tracking-wider block mb-1">
@@ -192,7 +230,7 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
         {/* ================================================================== */}
         <main className="flex-1 p-6 md:p-10">
           
-          {/* Top Search Bar */}
+          {/* Top Search Bar (Universal: searches every category) */}
           <div className="mb-8">
             <div className="relative max-w-2xl">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
@@ -205,27 +243,62 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
                 placeholder="SEARCH THE BREW..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-transparent border border-neutral-300 rounded-md text-xs tracking-wider uppercase text-[#19244E] placeholder:text-neutral-400 focus:outline-none focus:border-[#19244E]"
+                className="w-full pl-10 pr-10 py-2.5 bg-transparent border border-neutral-300 rounded-md text-xs tracking-wider uppercase text-[#19244E] placeholder:text-neutral-400 focus:outline-none focus:border-[#19244E]"
               />
+
+              {/* Clear (X) button: only shown when there is text */}
+              {isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-[#19244E] cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Active Category Header with Navy Underline Bar */}
+          {/* Header: Active Category, or "Search Results" */}
           <div className="mb-8 pb-3 border-b-2 border-[#19244E] inline-block">
             <h1 className="text-3xl md:text-4xl font-black text-[#19244E] uppercase tracking-wide">
-              {activeCategory}
+              {isSearching ? 'Search Results' : activeCategory}
             </h1>
           </div>
+
+          {/* Result summary line (search mode only) */}
+          {isSearching && (
+            <p className="text-xs text-neutral-600 font-medium -mt-4 mb-6">
+              {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'} found for{' '}
+              <span className="font-bold text-[#19244E]">"{searchQuery.trim()}"</span> across all categories
+            </p>
+          )}
 
           {/* Empty State Guard */}
           {filteredItems.length === 0 ? (
             <div className="p-12 text-center bg-white/50 rounded-2xl border border-black/10">
-              <p className="text-base font-bold text-[#19244E]">
-                No items available in this category yet.
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">
-                Try toggling between 'Signatures' and 'Pasta' to test the filter logic!
-              </p>
+              {isSearching ? (
+                <>
+                  <p className="text-base font-bold text-[#19244E]">
+                    No items found for "{searchQuery.trim()}".
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Try a different word, or clear the search to browse by category.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-base font-bold text-[#19244E]">
+                    No items available in this category yet.
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Try toggling between 'Signatures' and 'Pasta' to test the filter logic!
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             // Responsive 3-Column Item Cards Grid
@@ -234,6 +307,7 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
                 <MenuItemCard
                   key={item.id}
                   item={item}
+                  showCategory={isSearching}
                   onClick={() => handleItemClick(item)}
                 />
               ))}
@@ -255,12 +329,9 @@ export default function MenuPage({ onNavigate, onSelectItem }) {
   );
 }
 
-// ==============================================================================
+
 // 4. SUB-COMPONENT: MenuItemCard
-// Renders an individual product card: image, status tag, title, price, description.
-// Invokes onClick when selected to view deep ItemDetails.
-// ==============================================================================
-function MenuItemCard({ item, onClick }) {
+function MenuItemCard({ item, onClick, showCategory = false }) {
   const isAvailable = item.status === 'AVAILABLE';
 
   return (
@@ -281,6 +352,13 @@ function MenuItemCard({ item, onClick }) {
           }`}
           loading="lazy"
         />
+
+        {/* Category tag (search mode only), so users know where the item lives */}
+        {showCategory && (
+          <span className="absolute top-3 left-3 text-[10px] font-bold px-2.5 py-1 rounded-sm uppercase tracking-wider shadow-sm bg-[#19244E] text-white">
+            {item.category}
+          </span>
+        )}
 
         {/* Status Badge Tag */}
         <span

@@ -18,9 +18,6 @@ import { INITIAL_USERS } from '../pages/UserManagement.jsx';
 // Desktop Survey Builder Modal
 import { SurveyBuilderModal } from '../modals/SurveyBuilderModal.jsx';
 
-// ==============================================================================
-// PROFESSIONAL SVG ICON SYSTEM (Zero Emojis)
-// ==============================================================================
 const IconDashboard = ({ className = 'w-5 h-5' }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -217,9 +214,8 @@ const generateRandomPassword = () => {
   return pass;
 };
 
-// ==============================================================================
 // MAIN COMPONENT: MobileAdminLayout
-// ==============================================================================
+
 export const MobileAdminLayout = ({
   activeTab: propActiveTab,
   onTabChange,
@@ -636,7 +632,7 @@ export const MobileAdminLayout = ({
       </header>
 
       {/* ==================================================================== */}
-      {/* MAIN CONTENT AREA (Handles scroll behind fixed bottom tab bar)       */}
+      {/* MAIN CONTENT AREA   */}
       {/* ==================================================================== */}
       <main className="flex-1 pb-28 overflow-y-auto">
         {children ? (
@@ -1469,7 +1465,7 @@ export const MobileAdminLayout = ({
       </main>
 
       {/* ==================================================================== */}
-      {/* 2. FIXED BOTTOM TAB BAR (5 primary tabs, pure SVG icons)             */}
+      {/* 2. FIXED BOTTOM TAB BAR         */}
       {/* ==================================================================== */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200/90 py-1.5 px-2 flex items-center justify-around shadow-lg select-none">
         {/* Tab 1: Dashboard */}
@@ -1889,7 +1885,7 @@ export const MobileAdminLayout = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 4. SLIDE-OUT NAVIGATION DRAWER (From Hamburger ≡)                    */}
+      {/* 4. SLIDE-OUT NAVIGATION DRAWER                   */}
       {/* ==================================================================== */}
       {isDrawerOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -2039,7 +2035,7 @@ export const MobileAdminLayout = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 5. FULLY FUNCTIONAL 'ADD NEW PRODUCT' MODAL (Requirement 3)          */}
+      {/* 5. FULLY FUNCTIONAL 'ADD NEW PRODUCT' MODAl        */}
       {/* ==================================================================== */}
       {isAddProductModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2213,7 +2209,7 @@ export const MobileAdminLayout = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 6. FULLY FUNCTIONAL 'ADD NEW CATEGORY' MODAL (Requirement 3)         */}
+      {/* 6. FULLY FUNCTIONAL 'ADD NEW CATEGORY' MODAL        */}
       {/* ==================================================================== */}
       {isAddCategoryModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2344,7 +2340,7 @@ export const MobileAdminLayout = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 7. ADD / EDIT ADMIN USER MODAL (Requirement 4)                       */}
+      {/* 7. ADD / EDIT ADMIN USER MODAL                 */}
       {/* ==================================================================== */}
       {isUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -2548,7 +2544,7 @@ export const MobileAdminLayout = ({
       )}
 
       {/* ==================================================================== */}
-      {/* 8. CENTERED REVOKE ACCESS CONFIRMATION MODAL (Requirement 4)         */}
+      {/* 8. CENTERED REVOKE ACCESS CONFIRMATION MODAL       */}
       {/* ==================================================================== */}
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

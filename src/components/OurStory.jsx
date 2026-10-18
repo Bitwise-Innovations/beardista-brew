@@ -43,10 +43,8 @@ const teamMembers = [
   { id: 2, name: "Dais", role: "Barista", funFact: "Master of the Tsamporado blend.", image: baristaDais },
   { id: 3, name: "Ja", role: "Barista", funFact: "Knows your regular order before you even speak.", image: baristaJa }
 ];
-
-// ==============================================================================
 // MAIN COMPONENT: OurStory
-// ==============================================================================
+
 export default function OurStory({ onNavigate, onOpenSurvey }) {
   const [selectedBaristaId, setSelectedBaristaId] = useState(null);
 

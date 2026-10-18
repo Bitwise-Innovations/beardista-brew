@@ -11,7 +11,7 @@ export const OurStorySection = ({ onReadMore }) => {
     <section className="py-16 md:py-24 bg-[#FFF3E7] px-6 md:px-16" id="story-section">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         
-        {/* Left Column: Cafe Atmosphere Image */}
+        {/* Left Column: Cafe*/}
         <div className="order-2 lg:order-1 relative h-95 sm:h-115 lg:h-130 rounded-2xl overflow-hidden shadow-2xl border border-black/10 group">
           <img
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
@@ -30,7 +30,7 @@ export const OurStorySection = ({ onReadMore }) => {
             OUR STORY
           </h2>
 
-          {/* Core Brand Narrative Copy (Exact text from reference image) */}
+          {/* Core Brand Narrative Copy*/}
           <p className="text-base sm:text-lg text-[#111111] leading-relaxed font-normal">
             Beardista Brew isn't just about exceptional coffee; it's about the connections forged over a steaming cup.
             We started with a simple belief: a cafe should be the heart of a neighborhood, a place where the community
@@ -39,7 +39,7 @@ export const OurStorySection = ({ onReadMore }) => {
             our signature blends.
           </p>
 
-          {/* Interactive Trigger: Navigates to the complete OurStory page */}
+          {/* Navigates to OurStory page */}
           <div>
             <button
               onClick={onReadMore}

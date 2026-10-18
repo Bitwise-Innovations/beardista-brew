@@ -1,11 +1,11 @@
 import React from 'react';
 
 /**
- * WhatsBrewing component renders two prominent showcase feature modules.
- * @param {Object} props - Component properties
- * @param {Object} props.data - Data object containing event and mustTry specifications
- * @param {Function} props.onRegister - Callback when clicking "REGISTER & JOIN"
- * @param {Function} props.onViewTsamporado - Callback when clicking "VIEW DETAILS" on Tsamporado
+ 
+ * @param {Object} props 
+ * @param {Object} props.data 
+ * @param {Function} props.onRegister 
+ * @param {Function} props.onViewTsamporado 
  */
 export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
   return (
@@ -18,10 +18,10 @@ export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
           WHAT'S BREWING
         </h2>
 
-        {/* 2-Column Responsive Grid */}
+        {/* 2-Column*/}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
           
-          {/* Card 1: Featured Community Event (Latte Art Throwdown) */}
+          {/* Card 1: Event (Latte Art Throwdown) */}
           <div className="relative bg-[#FFF3E7] p-8 md:p-12 rounded-2xl flex flex-col justify-between items-start text-left overflow-hidden shadow-xl border border-white/10 hover:border-[#D97706]/40 transition-all duration-300">
             <div className="space-y-4">
               {/* Event Subtitle Badge */}
@@ -60,7 +60,7 @@ export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
             </div>
           </div>
 
-          {/* Card 2: Seasonal Menu Feature (Tsamporado) */}
+          {/* Card 2: Menu Feature */}
           <div className="relative bg-[#FFF3E7] p-8 md:p-12 rounded-2xl flex flex-col justify-between items-start text-left overflow-hidden shadow-xl border border-white/10 hover:border-[#EA580C]/40 transition-all duration-300">
             <div className="space-y-4">
               {/* Must Try Subtitle Badge */}

@@ -75,6 +75,8 @@ export const DashboardView = ({
             </div>
 
             <div className="text-2xl md:text-3xl font-black text-[#19244E] tracking-tight">
+
+              
               {stat.value}
             </div>
 

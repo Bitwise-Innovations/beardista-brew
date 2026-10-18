@@ -144,7 +144,7 @@ export const MobileLogin = ({
       {/* Main Authentication Container */}
       <div className="w-full max-w-sm flex flex-col items-center flex-1 justify-center my-auto">
         {/* ==================================================================== */}
-        {/* VIEW A: SIGN IN TO CONSOLE (Reference Image 2)                       */}
+        {/* VIEW A: SIGN IN TO CONSOLE                     */}
         {/* ==================================================================== */}
         {view === 'console' && (
           <div className="w-full space-y-5 animate-fadeIn">
@@ -373,7 +373,7 @@ export const MobileLogin = ({
         )}
 
         {/* ==================================================================== */}
-        {/* VIEW B: ENTER SECURITY PIN (Reference Image 1)                       */}
+        {/* VIEW B: ENTER SECURITY PIN                     */}
         {/* ==================================================================== */}
         {view === 'pin' && (
           <div className="w-full space-y-4 animate-fadeIn">
@@ -591,7 +591,7 @@ export const MobileLogin = ({
       </div>
 
       {/* ==================================================================== */}
-      {/* FOOTER: ENCRYPTED TERMINAL FOOTER (Both Views)                        */}
+      {/* FOOTER: ENCRYPTED TERMINAL FOOTER                     */}
       {/* ==================================================================== */}
       <div className="w-full max-w-sm pt-4 pb-2 text-center border-t border-gray-200/80">
         <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-700">

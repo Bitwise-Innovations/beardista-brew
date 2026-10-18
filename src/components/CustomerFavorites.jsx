@@ -8,11 +8,10 @@ import React from 'react';
  */
 export const CustomerFavorites = ({ items, onViewDetails }) => {
   return (
-    // Section wrapper with top hairline divider and warm cream background
     <section className="py-16 md:py-24 bg-[#FFF3E7] px-6 md:px-16 border-t border-black/10" id="menu-section">
       <div className="max-w-7xl mx-auto">
         
-        {/* Section Heading with signature orange vertical accent bar */}
+        {/* Section Heading}
         <h2 className="text-3xl md:text-5xl font-extrabold text-[#19244E] mb-12 uppercase tracking-widest border-l-4 border-[#E58422] pl-4">
           CUSTOMER FAVORITES
         </h2>

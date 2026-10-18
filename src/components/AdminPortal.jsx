@@ -226,7 +226,6 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
         <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-20">
           <div>
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Beardista Brew · Caloocan Flagship
             </span>
             <h2 className="text-base font-extrabold text-[#19244E] capitalize">
               {activePage}
@@ -241,7 +240,7 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
                 className="px-3.5 py-1.5 bg-orange-50 hover:bg-orange-100 text-[#E58422] border border-orange-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-2xs"
               >
                 <span>📱</span>
-                <span>Mobile App Shell</span>
+                <span>Mobile</span>
               </button>
             )}
 
@@ -329,7 +328,7 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
 };
 
 // ==============================================================================
-// INLINED ADMIN SIDEBAR COMPONENT (No imports needed)
+// INLINED ADMIN SIDEBAR COMPONENT
 // ==============================================================================
 const AdminSidebar = ({ activePage, onNavigate, onOpenLogout, onSwitchToCustomerMenu }) => {
   const navItems = [

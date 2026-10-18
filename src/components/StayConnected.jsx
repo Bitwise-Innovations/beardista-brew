@@ -20,7 +20,7 @@ export const StayConnected = ({ wifi }) => {
   };
 
   return (
-    // Section wrapper with top divider and cream background
+    // Section wrapper
     <section className="py-16 md:py-24 bg-[#FFF3E7] px-6 md:px-16 border-t border-black/10" id="wifi-section">
       <div className="max-w-3xl mx-auto text-center">
         
@@ -29,10 +29,10 @@ export const StayConnected = ({ wifi }) => {
           STAY CONNECTED.
         </h2>
 
-        {/* Centered White Credentials Card */}
+        {/* Card */}
         <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl flex flex-col items-center border border-black/10">
           
-          {/* QR Code Container with dashed border */}
+          {/* QR Code Container*/}
           <div className="w-52 h-52 bg-white mb-8 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 p-4 rounded-xl relative">
             {/* Local QR Image */}
             <img 
@@ -42,10 +42,10 @@ export const StayConnected = ({ wifi }) => {
             />
           </div>
 
-          {/* Credentials Display Rows (SSID and Password) */}
+          {/* Credentials Display*/}
           <div className="space-y-4 w-full max-w-sm">
             
-            {/* Row 1: WiFi Network Name (SSID) */}
+            {/* Row 1: WiFi Network Name*/}
             <div className="flex justify-between items-center border-b border-black/10 pb-3">
               <span className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wider">
                 WIFI NAME
@@ -55,7 +55,7 @@ export const StayConnected = ({ wifi }) => {
               </span>
             </div>
 
-            {/* Row 2: WiFi Password with Show/Hide and Copy actions */}
+            {/* Row 2: WiFi Password with Show hide at COPY */}
             <div className="flex justify-between items-center border-b border-black/10 pb-3">
               <span className="text-xs font-semibold text-[#111111]/80 uppercase tracking-wider">
                 PASSWORD

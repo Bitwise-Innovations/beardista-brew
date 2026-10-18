@@ -20,7 +20,6 @@
   }
 }
 
-/* Custom typography utilities matching design system */
 .font-headline-display {
   font-family: 'Anybody', sans-serif;
   font-size: clamp(2.75rem, 6vw, 5rem);

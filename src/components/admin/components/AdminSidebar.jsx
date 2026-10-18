@@ -139,7 +139,7 @@ export const AdminSidebar = ({
           </button>
         )}
 
-        {/* Logout trigger */}
+        {/* Logout*/}
         <button
           onClick={onOpenLogout}
           className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-bold transition-all cursor-pointer active:scale-95 border border-red-500/20"
