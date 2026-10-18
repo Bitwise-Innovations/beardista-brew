@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdminLogin } from '../AdminLogin.jsx';
+import { AdminLogin } from '../auth/AdminLogin.jsx';
 
 export const LoginView = ({ onLogin, onSwitchToCustomerMenu }) => {
   return (

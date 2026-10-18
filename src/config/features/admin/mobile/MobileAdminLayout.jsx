@@ -10,7 +10,7 @@ import {
   individualFeedbackList,
   initialEventsData,
   initialSettingsData
-} from '../../config/data/adminMockData.js';
+} from '../../../../data/adminMockData.jsx';
 
 // Data sync for User Management
 import { INITIAL_USERS } from '../pages/UserManagement.jsx';

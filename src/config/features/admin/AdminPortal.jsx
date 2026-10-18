@@ -11,7 +11,7 @@ import {
   initialContentData,
   initialEventsData,
   initialSettingsData
-} from '../config/data/adminMockData.js';
+} from '../../../data/adminMockData.jsx';
 
 // Pages / Views
 import { LoginView } from './pages/LoginView.jsx';
@@ -29,8 +29,8 @@ import { AddCategoryDrawer } from './drawers/AddCategoryDrawer.jsx';
 import { EditMenuItemDrawer } from './drawers/EditMenuItemDrawer.jsx';
 
 // Modals
-import { ChangePasswordModal } from './modals/ChangePasswordModal.jsx';
-import { LogoutModal } from './modals/LogoutModal.jsx';
+import { ChangePasswordModal } from './auth/ChangePasswordModal.jsx';
+import { LogoutModal } from './auth/LogoutModal.jsx';
 import { SurveyBuilderModal } from './modals/SurveyBuilderModal.jsx';
 
 export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobileView }) => {

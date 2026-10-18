@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 // Import your real layout components
-import { Navbar } from './Navbar.jsx';
-import { Footer } from './Footer.jsx';
+import { Navbar } from '../../../components/Navbar.jsx';
+import { Footer } from '../../../components/Footer.jsx';
 
 // Import all your local images from the assets folder
 import storyImg from '../assets/beardista sign.jpg';
