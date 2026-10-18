@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ItemDetailsModal from './ItemDetailsModal.jsx';
-import hiromiImg from '../assets/hiromi.png'; // <-- Added the import for hiromi.png
+import hiromiImg from '@/assets/hiromi.png'; // <-- Added the import for hiromi.png
 
 const mockCafeData = [
   // --- SIGNATURES CATEGORY ---

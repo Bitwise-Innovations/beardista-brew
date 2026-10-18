@@ -1,5 +1,5 @@
 import React from 'react';
-import storyImg from '../assets/beardista_ourstory.jpg';
+import storyImg from '@/assets/our_story.jpg';
 /**
  * OurStorySection component renders the home page preview of the cafe narrative.
  * @param {Object} props

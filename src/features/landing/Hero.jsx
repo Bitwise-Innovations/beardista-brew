@@ -1,5 +1,5 @@
 import React from 'react';
-import heroImage from '../assets/beardista_home.jpg';
+import heroImage from '@/assets/beardista_home.jpg';
 
 /**
  * Hero component displaying the main brand headline and visual anchor.

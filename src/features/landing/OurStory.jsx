@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-
+import storyImg from "@/assets/our_story.jpg";
 // Import your real layout components
-import { Navbar } from '../../../components/Navbar.jsx';
-import { Footer } from '../../../components/Footer.jsx';
+import { Navbar } from "@/components/Navbar.jsx";
+import { Footer } from "@/components/Footer.jsx";
 
 // Import all your local images from the assets folder
-import storyImg from '../assets/beardista sign.jpg';
-import mottoBgImg from '../assets/beardista_ourstory.jpg';
-import ownerImg from '../assets/owner_pic.jpg';
-import baristaBen from '../assets/barista_ben.jpg';
-import baristaDais from '../assets/barista_dais.jpg';
-import baristaJa from '../assets/barista_ja.jpg';
+
+import mottoBgImg from "@/assets/our_story.jpg";
+import ownerImg from '@/assets/owner_pic.jpg';
+import baristaBen from '@/assets/barista_ben.jpg';
+import baristaDais from '@/assets/barista_dais.jpg';
+import baristaJa from '@/assets/barista_ja.jpg';
 
 const storyNarrative = [
   { 

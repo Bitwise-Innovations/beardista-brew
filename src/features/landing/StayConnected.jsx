@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import qrImg from '../assets/wifi_qr.jpg'; // <-- Imported local QR image
+import qrImg from '@/assets/wifi_qr.jpg'; // <-- Imported local QR image
 
 /**
  * StayConnected component displays the cafe's public WiFi credentials.
