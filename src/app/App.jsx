@@ -111,7 +111,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onRegister={() => setIsEventOpen(true)}
             onViewTsamporado={handleViewTsamporado}
           />
-          <OurStorySection onReadMore={() => setCurrentPage('ourstory')} />
+         <OurStorySection onReadMore={() => handleNavigate('story')} />
             
           <WhyChooseUs pillars={whyChooseData} />
           <BeardistaBlend details={blendDetailsData} />
