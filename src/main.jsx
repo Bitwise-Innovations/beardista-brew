@@ -1,14 +1,16 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import App from "./app/App.jsx";
 import './index.css';
 
-// Mount the React virtual DOM tree into the root container element
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 
 root.render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );

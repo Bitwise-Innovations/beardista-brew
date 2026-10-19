@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 
 // --- CUSTOMER DATA ---
 import {
@@ -38,18 +39,26 @@ import { AdminPortal } from "../features/admin/AdminPortal.jsx";
 import { MobileLogin } from "../features/admin/mobile/MobileLogin.jsx";
 import { MobileAdminLayout } from "../features/admin/mobile/MobileAdminLayout.jsx";
 
+const PAGE_PATHS = { home: '/', menu: '/menu', story: '/our-story' };
+
 /**
  * CustomerApp: Represents the public-facing customer digital menu.
  */
 export const CustomerApp = ({ onOpenAdminLogin }) => {
-  const [currentPage, setCurrentPage] = useState('home');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const currentPage =
+    location.pathname.startsWith('/menu') ? 'menu' :
+    location.pathname.startsWith('/our-story') ? 'story' : 'home';
+
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
 
   const handleExploreMenu = () => {
-    setCurrentPage('menu');
+    navigate('/menu');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -69,13 +78,13 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       if (onOpenAdminLogin) onOpenAdminLogin();
       return;
     }
-    setCurrentPage(page);
+    navigate(PAGE_PATHS[page] ?? '/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="min-h-screen bg-[#FFF3E7] text-[#111111] flex flex-col antialiased selection:bg-[#E58422] selection:text-white">
-      
+
       {currentPage === 'story' ? (
         <OurStory
           onNavigate={handleNavigate}
@@ -111,8 +120,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onRegister={() => setIsEventOpen(true)}
             onViewTsamporado={handleViewTsamporado}
           />
-         <OurStorySection onReadMore={() => handleNavigate('story')} />
-            
+          <OurStorySection onReadMore={() => handleNavigate('story')} />
           <WhyChooseUs pillars={whyChooseData} />
           <BeardistaBlend details={blendDetailsData} />
           <CustomerVoice
@@ -120,7 +128,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <StayConnected wifi={wifiData} />
-          
+
           <Footer onNavigate={handleNavigate} />
         </>
       )}
@@ -146,62 +154,67 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   );
 };
 
+const RequireAdmin = ({ isAuthed, children }) =>
+  isAuthed ? children : <Navigate to="/admin/login" replace />;
+
 /**
  * MAIN ROUTER APP
  */
 export default function App() {
-  const [currentView, setCurrentView] = useState('customer');
+  const navigate = useNavigate();
+  const [isAuthed, setIsAuthed] = useState(false);
 
-  if (currentView === 'admin-mobile-login') {
-    return (
-      <MobileLogin
-        onLoginSuccess={() => setCurrentView('admin-mobile-dashboard')}
-        onBackToCustomer={() => setCurrentView('customer')}
-        onSwitchToDesktop={() => setCurrentView('admin-login')}
-      />
-    );
-  }
+  const openAdminLogin = () => {
+    navigate(window.innerWidth < 768 ? '/admin/mobile/login' : '/admin/login');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-  if (currentView === 'admin-mobile-dashboard') {
-    return (
-      <MobileAdminLayout
-        onLogout={() => setCurrentView('admin-mobile-login')}
-        onSwitchToDesktop={() => setCurrentView('admin-dashboard')}
-        onSwitchToCustomerMenu={() => setCurrentView('customer')}
-      />
-    );
-  }
-
-  if (currentView === 'admin-login') {
-    return (
-      <AdminLogin
-        onLoginSuccess={() => setCurrentView('admin-dashboard')}
-        onBackToCustomer={() => setCurrentView('customer')}
-        onSwitchToMobileLogin={() => setCurrentView('admin-mobile-login')}
-      />
-    );
-  }
-
-  if (currentView === 'admin-dashboard') {
-    return (
-      <AdminPortal
-        onSwitchToCustomerMenu={() => setCurrentView('customer')}
-        onLogout={() => setCurrentView('admin-login')}
-        onSwitchToMobileView={() => setCurrentView('admin-mobile-dashboard')}
-      />
-    );
-  }
+  const logout = (to) => {
+    setIsAuthed(false);
+    navigate(to);
+  };
 
   return (
-    <CustomerApp
-      onOpenAdminLogin={() => {
-        if (window.innerWidth < 768) {
-          setCurrentView('admin-mobile-login');
-        } else {
-          setCurrentView('admin-login');
-        }
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }}
-    />
+    <Routes>
+      <Route path="/" element={<CustomerApp onOpenAdminLogin={openAdminLogin} />} />
+      <Route path="/menu" element={<CustomerApp onOpenAdminLogin={openAdminLogin} />} />
+      <Route path="/our-story" element={<CustomerApp onOpenAdminLogin={openAdminLogin} />} />
+
+      <Route path="/admin/login" element={
+        <AdminLogin
+          onLoginSuccess={() => { setIsAuthed(true); navigate('/admin'); }}
+          onBackToCustomer={() => navigate('/')}
+          onSwitchToMobileLogin={() => navigate('/admin/mobile/login')}
+        />
+      } />
+      <Route path="/admin" element={
+        <RequireAdmin isAuthed={isAuthed}>
+          <AdminPortal
+            onSwitchToCustomerMenu={() => navigate('/')}
+            onLogout={() => logout('/admin/login')}
+            onSwitchToMobileView={() => navigate('/admin/mobile')}
+          />
+        </RequireAdmin>
+      } />
+
+      <Route path="/admin/mobile/login" element={
+        <MobileLogin
+          onLoginSuccess={() => { setIsAuthed(true); navigate('/admin/mobile'); }}
+          onBackToCustomer={() => navigate('/')}
+          onSwitchToDesktop={() => navigate('/admin/login')}
+        />
+      } />
+      <Route path="/admin/mobile" element={
+        <RequireAdmin isAuthed={isAuthed}>
+          <MobileAdminLayout
+            onLogout={() => logout('/admin/mobile/login')}
+            onSwitchToDesktop={() => navigate('/admin')}
+            onSwitchToCustomerMenu={() => navigate('/')}
+          />
+        </RequireAdmin>
+      } />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
