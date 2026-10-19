@@ -111,12 +111,8 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onRegister={() => setIsEventOpen(true)}
             onViewTsamporado={handleViewTsamporado}
           />
-          <OurStorySection
-            onReadMore={() => {
-              setCurrentPage('story');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <OurStorySection onReadMore={() => setCurrentPage('ourstory')} />
+            
           <WhyChooseUs pillars={whyChooseData} />
           <BeardistaBlend details={blendDetailsData} />
           <CustomerVoice
