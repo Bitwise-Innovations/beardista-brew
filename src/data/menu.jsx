@@ -137,3 +137,4 @@ export const faqData = [
   { id: 3, question: "Can we bring outside food or drinks?", answer: "To uphold our food safety standards and support our kitchen staff, outside food and beverages are not permitted. We offer an extensive selection of drinks and freshly prepared artisanal bites." },
   { id: 4, question: "What payment methods do you accept?", answer: "We accept Cash, GCash, Maya, and major credit and debit cards (Visa & Mastercard) for your convenience." }
 ];
+
