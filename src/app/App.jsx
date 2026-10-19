@@ -9,34 +9,34 @@ import {
   reviewsData,
   wifiData,
   faqData
-} from './data/menu.jsx';
+} from '../data/menu.jsx';
 
 // --- CUSTOMER COMPONENTS ---
-import { Navbar } from './components/Navbar.jsx';
-import { Hero } from './features/landing/Hero.jsx';
-import { CustomerFavorites } from './features/landing/CustomerFavorites.jsx';
-import { WhatsBrewing } from './features/landing/WhatsBrewing.jsx';
-import { OurStorySection } from './features/landing/OurStorySection.jsx';
-import OurStory from './features/landing/OurStory.jsx';
-import { WhyChooseUs } from './features/landing/WhyChooseUs.jsx';
-import { BeardistaBlend } from './features/landing/BeardistaBlend.jsx';
-import { CustomerVoice } from './features/landing/CustomerVoice.jsx';
-import { StayConnected } from './features/landing/StayConnected.jsx';
-import { Footer } from './components/Footer.jsx';
-import MenuPage from './features/menu/MenuPage.jsx';
-import { FAQSection } from './features/landing/FAQSection.jsx';
+import { Navbar } from '../components/Navbar.jsx';
+import { Hero } from '../features/landing/Hero.jsx';
+import { CustomerFavorites } from '../features/landing/CustomerFavorites.jsx';
+import { WhatsBrewing } from '../features/landing/WhatsBrewing.jsx';
+import { OurStorySection } from '../features/landing/OurStorySection.jsx';
+import OurStory from '../features/landing/OurStory.jsx';
+import { WhyChooseUs } from '../features/landing/WhyChooseUs.jsx';
+import { BeardistaBlend } from '../features/landing/BeardistaBlend.jsx';
+import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
+import { StayConnected } from '../features/landing/StayConnected.jsx';
+import { Footer } from '../components/Footer.jsx';
+import MenuPage from '../features/menu/MenuPage.jsx';
+import { FAQSection } from '../features/landing/FAQSection.jsx';
 
 // --- CUSTOMER MODALS ---
-import { ItemDetailsModal } from './features/menu/ItemDetailsModal.jsx';
-import { SurveyModal } from './features/landing/SurveyModal.jsx';
-import { EventDetailsModal } from './features/landing/EventDetailsModal.jsx';
-import { StoryModal } from './features/landing/StoryModal.jsx';
+import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
+import { SurveyModal } from '../features/landing/SurveyModal.jsx';
+import { EventDetailsModal } from '../features/landing/EventDetailsModal.jsx';
+import { StoryModal } from '../features/landing/StoryModal.jsx';
 
 // --- ADMIN COMPONENTS ---
-import { AdminLogin } from "./features/admin/auth/AdminLogin.jsx";
-import { AdminPortal } from "./features/admin/AdminPortal.jsx";
-import { MobileLogin } from "./features/admin/mobile/MobileLogin.jsx";
-import { MobileAdminLayout } from "./features/admin/mobile/MobileAdminLayout.jsx";
+import { AdminLogin } from "../features/admin/auth/AdminLogin.jsx";
+import { AdminPortal } from "../features/admin/AdminPortal.jsx";
+import { MobileLogin } from "../features/admin/mobile/MobileLogin.jsx";
+import { MobileAdminLayout } from "../features/admin/mobile/MobileAdminLayout.jsx";
 
 /**
  * CustomerApp: Represents the public-facing customer digital menu.
