@@ -1,6 +1,6 @@
-import alonImg from '@/assets/alon at apoy.png';
+import alonImg from '@/assets/alon_at_apoy.png';
 import goateeImg from '@/assets/goatee.png';
-import chickenImg from '@/assets/chicken fingers.jpg';
+import chickenImg from '@/assets/chicken_fingers.jpg';
 import palitawImg from '@/assets/palitaw.jpg';
 
 export const customerFavoritesData = [

@@ -45,7 +45,7 @@ export const customerFavoritesThisMonth = [
     orders: 412,
     rating: 4.9,
     price: 180,
-    image: '/src/assets/alon at apoy.png',
+    image: '/src/assets/alon_at_apoy.png',
     trend: '+18%'
   },
   {
@@ -65,7 +65,7 @@ export const customerFavoritesThisMonth = [
     orders: 295,
     rating: 4.7,
     price: 220,
-    image: '/src/assets/chicken fingers.jpg',
+    image: '/src/assets/chicken_fingers.jpg',
     trend: '+15%'
   },
   {
@@ -110,12 +110,12 @@ export const initialMenuItems = [
   { id: 104, category: 'Specialty Coffee', name: 'Filter / Pour-Over', price: 'P180.00', description: 'Ask the barista for the guest beans.', available: true, image: '/src/assets/beardista blanc.jpg' },
 
   // COMPETITION ARTISANS
-  { id: 201, category: 'Competition Artisans', name: 'M3 (Bicol Express)', price: 'P200.00', description: 'Espresso with creamy coconut notes, subtle spicy finish, topped with bacon.', available: true, image: '/src/assets/alon at apoy.png' },
-  { id: 202, category: 'Competition Artisans', name: 'Palitaw', price: 'P250.00', description: 'Nostalgic Filipino Meryenda turned into a modern comforting beverage.', available: true, image: '/src/assets/alon at apoy.png' },
-  { id: 203, category: 'Competition Artisans', name: 'Turon', price: 'P250.00', description: 'Classic fusion of espresso, milk, banana and langka syrup, garnished with lumpia wrapper.', available: true, image: '/src/assets/alon at apoy.png' },
-  { id: 204, category: 'Competition Artisans', name: 'Tsamporado', price: 'P250.00', description: 'The signature taste of comforting food. Now in a cup', available: true, image: '/src/assets/alon at apoy.png' },
-  { id: 205, category: 'Competition Artisans', name: 'Alon at Apoy', price: 'P280.00', description: 'Surftown Throwdown Battle of the Barista - Best Signature Beverage 2025', available: true, image: '/src/assets/alon at apoy.png' },
-  { id: 206, category: 'Competition Artisans', name: 'Beardista Blanc', price: 'P250.00', description: 'Aerated espresso with rich cold cream. Inspired by the elegance of the classic Mont Blanc dessert.', available: true, image: '/src/assets/alon at apoy.png' },
+  { id: 201, category: 'Competition Artisans', name: 'M3 (Bicol Express)', price: 'P200.00', description: 'Espresso with creamy coconut notes, subtle spicy finish, topped with bacon.', available: true, image: '/src/assets/alon_at_apoy.png' },
+  { id: 202, category: 'Competition Artisans', name: 'Palitaw', price: 'P250.00', description: 'Nostalgic Filipino Meryenda turned into a modern comforting beverage.', available: true, image: '/src/assets/alon_at_apoy.png' },
+  { id: 203, category: 'Competition Artisans', name: 'Turon', price: 'P250.00', description: 'Classic fusion of espresso, milk, banana and langka syrup, garnished with lumpia wrapper.', available: true, image: '/src/assets/alon_at_apoy.png' },
+  { id: 204, category: 'Competition Artisans', name: 'Tsamporado', price: 'P250.00', description: 'The signature taste of comforting food. Now in a cup', available: true, image: '/src/assets/alon_at_apoy.png' },
+  { id: 205, category: 'Competition Artisans', name: 'Alon at Apoy', price: 'P280.00', description: 'Surftown Throwdown Battle of the Barista - Best Signature Beverage 2025', available: true, image: '/src/assets/alon_at_apoy.png' },
+  { id: 206, category: 'Competition Artisans', name: 'Beardista Blanc', price: 'P250.00', description: 'Aerated espresso with rich cold cream. Inspired by the elegance of the classic Mont Blanc dessert.', available: true, image: '/src/assets/alon_at_apoy.png' },
 
   // MILK CREATIONS
   { id: 301, category: 'Milk Creations', name: 'Vanya', price: 'P170.00', description: 'A taste of the Philippines in every sip. This ube latte is a must try!', available: true, image: '/src/assets/goatee.png' },
@@ -158,12 +158,12 @@ export const initialMenuItems = [
   { id: 710, category: 'Bespokes', name: 'Kratos Wrath', price: 'P250.00', description: 'A formidable blend of ancient honey mead with deep flavors and a thunderous finish.', available: true, image: '/src/assets/bespokes.png' },
   
   // SAVORY BITES
-  { id: 801, category: 'Savory Bites', name: 'French Fries', price: 'P140.00', description: 'Flavors: Plain, Sourcream, BBQ, Cheese', available: true, image: '/src/assets/chicken fingers.jpg' },
-  { id: 802, category: 'Savory Bites', name: 'Nachos Supreme', price: 'P150.00', description: 'Crispy nachos loaded with rich savory toppings.', available: true, image: '/src/assets/chicken fingers.jpg' },
-  { id: 803, category: 'Savory Bites', name: 'Chicken & Egg Sandwich', price: 'P160.00', description: 'Classic savory chicken and egg sandwich.', available: true, image: '/src/assets/chicken fingers.jpg' },
-  { id: 804, category: 'Savory Bites', name: 'Crab & Egg Sandwich', price: 'P160.00', description: 'Delicious crab and egg mix filling.', available: true, image: '/src/assets/chicken fingers.jpg' },
-  { id: 805, category: 'Savory Bites', name: 'Chick and Fries', price: 'P280.00', description: 'Crispy chicken paired with golden fries.', available: true, image: '/src/assets/chicken fingers.jpg' },
-  { id: 806, category: 'Savory Bites', name: 'Chicken Fingers', price: 'P210.00', description: 'Flavors: Buffalo, Hickory BBQ, Mango Habanero, Salted Egg, Plain with Garlic Mayo Dip', available: true, image: '/src/assets/chicken fingers.jpg' },
+  { id: 801, category: 'Savory Bites', name: 'French Fries', price: 'P140.00', description: 'Flavors: Plain, Sourcream, BBQ, Cheese', available: true, image: '/src/assets/chicken_fingers.jpg' },
+  { id: 802, category: 'Savory Bites', name: 'Nachos Supreme', price: 'P150.00', description: 'Crispy nachos loaded with rich savory toppings.', available: true, image: '/src/assets/chicken_fingers.jpg' },
+  { id: 803, category: 'Savory Bites', name: 'Chicken & Egg Sandwich', price: 'P160.00', description: 'Classic savory chicken and egg sandwich.', available: true, image: '/src/assets/chicken_fingers.jpg' },
+  { id: 804, category: 'Savory Bites', name: 'Crab & Egg Sandwich', price: 'P160.00', description: 'Delicious crab and egg mix filling.', available: true, image: '/src/assets/chicken_fingers.jpg' },
+  { id: 805, category: 'Savory Bites', name: 'Chick and Fries', price: 'P280.00', description: 'Crispy chicken paired with golden fries.', available: true, image: '/src/assets/chicken_fingers.jpg' },
+  { id: 806, category: 'Savory Bites', name: 'Chicken Fingers', price: 'P210.00', description: 'Flavors: Buffalo, Hickory BBQ, Mango Habanero, Salted Egg, Plain with Garlic Mayo Dip', available: true, image: '/src/assets/chicken_fingers.jpg' },
   
   // PASTA
   { id: 901, category: 'Pasta', name: 'Carbonara', price: 'P190.00', description: 'Creamy pasta tossed in a rich carbonara sauce with crispy bacon, finished with parmesan cheese and a hint of garlic.', available: true, image: '/src/assets/pasta.jpg' },
