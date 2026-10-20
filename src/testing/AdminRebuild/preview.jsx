@@ -13,22 +13,27 @@ import AdminLayout from "./layout/AdminLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import MenuManagement from "./pages/MenuManagement";
 import Analytics from "./pages/Analytics";
+import ContentManagement from "./pages/ContentManagement";
+import UserManagement from "./pages/UserManagement";
+import AuditLogs from "./pages/AuditLogs";
+import Events from "./pages/Events";
+import Settings from "./pages/Settings";
 
 const sections = [
   {
     path: "/admin/menu-management",
     title: "Menu Management",
-    description: "Manage and organize the café menu.",
+    description: "Manage and organize the cafÃ© menu.",
   },
   {
     path: "/admin/analytics",
     title: "Analytics",
-    description: "Review café performance and business insights.",
+    description: "Review cafÃ© performance and business insights.",
   },
   {
     path: "/admin/content-management",
     title: "Content Management",
-    description: "Manage the content displayed across the café system.",
+    description: "Manage the content displayed across the cafÃ© system.",
   },
   {
     path: "/admin/user-management",
@@ -43,7 +48,7 @@ const sections = [
   {
     path: "/admin/events",
     title: "Events",
-    description: "Organize and review café events.",
+    description: "Organize and review cafÃ© events.",
   },
   {
     path: "/admin/settings",
@@ -69,7 +74,7 @@ function PlaceholderPage({ title, description }) {
         <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
           <div className="mx-auto flex max-w-lg flex-col items-center py-8 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-2xl">
-              ☕
+              â˜•
             </div>
             <h2 className="mt-5 text-lg font-bold text-[#19244E]">
               Page ready for development
@@ -142,17 +147,36 @@ function AdminRebuildApp() {
     <AdminLayout activePage="Analytics">
       <Analytics />
     </AdminLayout>
+  ) : section.path === "/admin/content-management" ? (
+    <AdminLayout activePage="Content Management">
+      <ContentManagement />
+    </AdminLayout>
+  ) : section.path === "/admin/user-management" ? (
+    <AdminLayout activePage="User Management">
+      <UserManagement />
+    </AdminLayout>
+  ) : section.path === "/admin/audit-logs" ? (
+    <AdminLayout activePage="Audit Logs">
+      <AuditLogs />
+    </AdminLayout>
+  ) : section.path === "/admin/events" ? (
+    <AdminLayout activePage="Events">
+      <Events />
+    </AdminLayout>
+  ) : section.path === "/admin/settings" ? (
+    <AdminLayout activePage="Settings">
+      <Settings />
+    </AdminLayout>
   ) : (
     <PlaceholderPage
       title={section.title}
       description={section.description}
     />
   )
-}
+            }
           />
-        ))}
 
-        <Route path="*" element={<NotFoundPage />} />
+        ))}
       </Routes>
     </HashRouter>
   );
