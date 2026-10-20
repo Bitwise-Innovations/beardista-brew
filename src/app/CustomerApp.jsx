@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { useFeatured } from '../hooks/useFeatured.js';
 // --- CUSTOMER DATA ---
 import {
   customerFavoritesData,
@@ -37,8 +37,9 @@ const PAGE_PATHS = { home: '/', menu: '/menu', story: '/our-story' };
  * CustomerApp: the public-facing customer digital menu.
  */
 export const CustomerApp = ({ onOpenAdminLogin }) => {
-  const navigate = useNavigate();
+   const navigate = useNavigate();
   const location = useLocation();
+  const { data: featuredItems } = useFeatured();
 
   const currentPage =
     location.pathname.startsWith('/menu') ? 'menu' :
