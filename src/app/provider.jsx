@@ -7,4 +7,4 @@ const queryClient = new QueryClient({
 
 export default function AppProvider({ children }) {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
+} 
