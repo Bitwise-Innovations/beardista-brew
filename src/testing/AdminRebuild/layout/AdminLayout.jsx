@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, Bell, Search } from "lucide-react";
 import AdminSidebar from "./AdminSidebar";
 
@@ -7,6 +7,31 @@ export default function AdminLayout({
   children,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const close = () => setMobileOpen(false);
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") close();
+    };
+    // Matches Tailwind's lg breakpoint, where the sidebar is always shown.
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const onScreenChange = (event) => {
+      if (event.matches) close();
+    };
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
+    desktop.addEventListener("change", onScreenChange);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      desktop.removeEventListener("change", onScreenChange);
+    };
+  }, [mobileOpen]);
 
   return (
     <div className="min-h-screen bg-[#EEF2F7] text-gray-900">

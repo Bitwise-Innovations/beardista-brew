@@ -1,0 +1,3 @@
+Rules: Only read and edit the file I name. Keep the current design. Ask before installing packages. No git commands. Explain changes in 1 short line each, in simple words.
+
+Task: src/testing/AdminRebuild/pages/<PageName>.jsx — on phones (<640px) make the page shorter without changing desktop: 2 cards per row, smaller padding and headings, hide decorative extras, buttons stay ≥44px tall. Plan in 5 bullets, wait for my OK.
