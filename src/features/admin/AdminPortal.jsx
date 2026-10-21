@@ -16,7 +16,7 @@ import {
 // Pages / Views
 import { LoginView } from './pages/LoginView.jsx';
 import { DashboardView } from './pages/DashboardView.jsx';
-import { MenuManagementView } from './pages/MenuManagementView.jsx';
+import { MenuManagement as MenuManagementView } from "./pages/MenuManagement.jsx";
 import { AnalyticsReportsView } from './pages/AnalyticsReportsView.jsx';
 import { ContentManagerView } from './pages/ContentManagerView.jsx';
 import { EventsManagerView } from './pages/EventsManagerView.jsx';
