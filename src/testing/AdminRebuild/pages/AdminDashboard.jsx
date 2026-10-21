@@ -3,10 +3,20 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Coffee,
+  CupSoda,
+  Eye,
   ShoppingBag,
   Star,
   TrendingUp,
+  UtensilsCrossed,
 } from "lucide-react";
+
+// Most viewed sample item in each group; pictures can be connected to the backend later.
+const favorites = [
+  { name: "Spanish Latte", category: "Coffee", icon: Coffee, views: 1284 },
+  { name: "Matcha Latte", category: "Non-Coffee", icon: CupSoda, views: 874 },
+  { name: "Blueberry Cheesecake", category: "Food", icon: UtensilsCrossed, views: 803 },
+];
 
 export default function AdminDashboard() {
   const [storeOnline, setStoreOnline] = useState(true);
@@ -53,8 +63,6 @@ export default function AdminDashboard() {
       points: "0,18 12,15 24,16 36,8 48,10 60,3",
     },
   ];
-
-  const pictureSlots = [1, 2, 3, 4];
 
   return (
     <div className="mx-auto max-w-7xl space-y-4 font-['Plus_Jakarta_Sans',sans-serif] sm:space-y-6">
@@ -157,60 +165,48 @@ export default function AdminDashboard() {
         })}
       </section>
 
-      {/* Picture cards with category, name, price and orders placeholders */}
+      {/* Top item from each group as compact list rows */}
       <section className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm sm:p-7">
-        <div className="mb-4 border-b border-gray-100 pb-4 sm:mb-6 sm:pb-5">
+        <div className="mb-2 border-b border-gray-100 pb-4 sm:mb-3 sm:pb-5">
           <h2 className="text-base font-extrabold text-[#19244E] sm:text-lg">
             Customer Favorites This Month
           </h2>
           <p className="mt-1 hidden text-sm text-gray-500 sm:block">
-            Picture and item details can be connected to the backend later.
+            Most viewed Coffee, Non-Coffee and Food item · Sample data
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          {pictureSlots.map((slot) => (
-            <article
-              key={slot}
-              className="flex min-w-0 flex-col justify-between rounded-2xl border border-gray-200 bg-gray-50 p-3 transition hover:border-orange-200 hover:bg-white hover:shadow-md sm:p-4"
-            >
-              {/* Image frame */}
-              <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-100 p-2 transition hover:border-[#E58422] sm:p-4">
-                <div className="text-center">
-                  <div className="mx-auto mb-3 hidden h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-[#E58422] sm:flex">
-                    <Coffee size={25} strokeWidth={1.7} />
-                  </div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#19244E] sm:text-sm">
-                    INPUT PICTURE HERE
-                  </p>
-                  <p className="mt-1 hidden text-xs text-gray-400 sm:block">
-                    Image slot {String(slot).padStart(2, "0")}
-                  </p>
-                </div>
+        <ol className="divide-y divide-gray-100">
+          {favorites.map(({ name, category, icon: Icon, views }, index) => (
+            <li key={name} className="flex min-w-0 items-center gap-3 py-3">
+              <span
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-extrabold ${
+                  index === 0
+                    ? "bg-[#E58422] text-white"
+                    : "bg-gray-50 text-[#19244E] ring-1 ring-gray-200"
+                }`}
+              >
+                {index + 1}
+              </span>
+
+              {/* Picture placeholder */}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-gray-300">
+                <Icon size={18} strokeWidth={1.7} />
               </div>
 
-              {/* Category and item name */}
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  CATEGORY
-                </p>
-                <h3 className="mt-1 text-xs font-extrabold text-[#19244E] sm:text-sm">
-                  INPUT NAME HERE
-                </h3>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-extrabold text-[#19244E]">{name}</p>
+                <p className="truncate text-[11px] font-semibold text-gray-400">{category}</p>
               </div>
 
-              {/* Bottom row: price on the left, orders on the right */}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-3 sm:mt-4">
-                <span className="text-xs font-extrabold text-[#E58422]">
-                  PRICE
-                </span>
-                <span className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-semibold text-gray-500">
-                  ORDERS
-                </span>
-              </div>
-            </article>
+              <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-gray-600">
+                <Eye size={13} className="hidden text-gray-400 sm:block" />
+                {views.toLocaleString()}
+                <span className="hidden font-semibold text-gray-400 sm:inline">views</span>
+              </span>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
     </div>
   );

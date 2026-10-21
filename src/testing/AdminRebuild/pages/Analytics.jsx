@@ -1,4 +1,5 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   ClipboardList,
   Users,
@@ -175,6 +176,31 @@ export default function Analytics() {
   const [timeframe, setTimeframe] = useState("30d");
   const [feedback, setFeedback] = useState(initialFeedback);
   const [showSurveyNotice, setShowSurveyNotice] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // The open response lives in the link (?response=1) so notifications can open it.
+  const selectedResponse = feedback.find(
+    (item) => String(item.id) === searchParams.get("response")
+  );
+
+  function openResponse(id) {
+    setSearchParams({ response: String(id) });
+  }
+
+  function closeResponse() {
+    setSearchParams({}, { replace: true });
+  }
+
+  useEffect(() => {
+    if (!selectedResponse) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") setSearchParams({}, { replace: true });
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedResponse, setSearchParams]);
 
   function toggleFeedback(id) {
     setFeedback((items) =>
@@ -350,6 +376,14 @@ export default function Analytics() {
                 <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-start">
                   <button
                     type="button"
+                    onClick={() => openResponse(item.id)}
+                    className="min-h-11 rounded-xl border border-gray-200 bg-white px-3 text-xs font-bold text-[#19244E] transition hover:border-[#19244E]"
+                  >
+                    View details
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => toggleFeedback(item.id)}
                     aria-pressed={item.syncToVoice}
                     className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5"
@@ -423,6 +457,75 @@ export default function Analytics() {
               className="mt-5 w-full rounded-xl bg-[#19244E] px-4 py-3 text-sm font-bold text-white hover:bg-[#27376f]"
             >
               Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedResponse && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[#10182f]/50 p-4"
+          onClick={closeResponse}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="response-details-title"
+            className="my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <SectionLabel>Survey response</SectionLabel>
+                <h3 id="response-details-title" className="mt-1 text-lg font-black text-[#19244E]">
+                  {selectedResponse.name}
+                </h3>
+                <p className="mt-1 text-xs text-gray-400">{selectedResponse.date}</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close response details"
+                onClick={closeResponse}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm italic leading-6 text-gray-700">
+              “{selectedResponse.comment}”
+            </p>
+
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl border border-gray-100 p-3">
+                <dt className="font-bold text-gray-400">Rating</dt>
+                <dd className="mt-1 inline-flex items-center gap-1 font-extrabold text-amber-500">
+                  <Star size={12} fill="currentColor" />
+                  {selectedResponse.rating}.0 / 5
+                </dd>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-3">
+                <dt className="font-bold text-gray-400">Visit frequency</dt>
+                <dd className="mt-1 font-extrabold text-[#19244E]">{selectedResponse.visitFrequency}</dd>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-3">
+                <dt className="font-bold text-gray-400">Preference</dt>
+                <dd className="mt-1 font-extrabold text-[#19244E]">{selectedResponse.preference}</dd>
+              </div>
+              <div className="rounded-xl border border-gray-100 p-3">
+                <dt className="font-bold text-gray-400">Visibility</dt>
+                <dd className={`mt-1 font-extrabold ${selectedResponse.syncToVoice ? "text-[#E58422]" : "text-gray-500"}`}>
+                  {selectedResponse.syncToVoice ? "Live" : "Hidden"}
+                </dd>
+              </div>
+            </dl>
+
+            <button
+              type="button"
+              onClick={closeResponse}
+              className="mt-5 min-h-11 w-full rounded-xl bg-[#19244E] px-4 py-3 text-sm font-bold text-white hover:bg-[#27376f]"
+            >
+              Close
             </button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 ﻿import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const INITIAL_EVENT = {
   status: "Registration Active",
@@ -84,6 +85,23 @@ const INITIAL_ARCHIVE = [
   },
 ];
 
+const PARTICIPANTS = [
+  { id: 1, name: "Bianca Cruz", email: "bianca.cruz@example.com", track: "Competitor", registered: "Oct 22, 2026", isNew: true },
+  { id: 2, name: "Miguel Santos", email: "miguel.santos@example.com", track: "Spectator", registered: "Oct 21, 2026" },
+  { id: 3, name: "Andrea Lim", email: "andrea.lim@example.com", track: "Competitor", registered: "Oct 21, 2026" },
+  { id: 4, name: "Paolo Reyes", email: "paolo.reyes@example.com", track: "Competitor", registered: "Oct 20, 2026" },
+  { id: 5, name: "Kristine Dela Cruz", email: "kristine.dc@example.com", track: "Spectator", registered: "Oct 20, 2026" },
+  { id: 6, name: "Joshua Tan", email: "joshua.tan@example.com", track: "Spectator", registered: "Oct 19, 2026" },
+  { id: 7, name: "Camille Garcia", email: "camille.garcia@example.com", track: "Competitor", registered: "Oct 18, 2026" },
+  { id: 8, name: "Rafael Mendoza", email: "rafael.mendoza@example.com", track: "Spectator", registered: "Oct 18, 2026" },
+  { id: 9, name: "Nicole Bautista", email: "nicole.bautista@example.com", track: "Competitor", registered: "Oct 17, 2026" },
+  { id: 10, name: "Enzo Villanueva", email: "enzo.v@example.com", track: "Spectator", registered: "Oct 16, 2026" },
+  { id: 11, name: "Patricia Ramos", email: "patricia.ramos@example.com", track: "Competitor", registered: "Oct 15, 2026" },
+  { id: 12, name: "Leo Navarro", email: "leo.navarro@example.com", track: "Spectator", registered: "Oct 14, 2026" },
+];
+
+const PARTICIPANTS_PER_PAGE = 5;
+
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm font-medium text-[#19244E] outline-none focus:border-[#E58422] focus:ring-2 focus:ring-orange-100";
 
@@ -101,7 +119,8 @@ function SectionCard({ children, className = "" }) {
 }
 
 function Events() {
-  const [activeTab, setActiveTab] = useState("builder");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [participantPage, setParticipantPage] = useState(1);
   const [event, setEvent] = useState(INITIAL_EVENT);
   const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
   const [track, setTrack] = useState("competitor");
@@ -234,8 +253,21 @@ function Events() {
   const tabs = [
     { id: "builder", label: "2-Track Registration Builder" },
     { id: "overview", label: "Event Overview & Schedule" },
-    { id: "archive", label: "Past Tournaments Archive" },
+    { id: "participants", label: "Event Participants", count: PARTICIPANTS.length },
+    { id: "archive", label: "Past Tournaments Archive", count: archive.length },
   ];
+
+  // The open tab lives in the link (?tab=participants) so notifications can open it.
+  const requestedTab = searchParams.get("tab");
+  const activeTab = tabs.some((tab) => tab.id === requestedTab) ? requestedTab : "builder";
+  const setActiveTab = (id) => setSearchParams({ tab: id }, { replace: true });
+
+  const totalParticipantPages = Math.ceil(PARTICIPANTS.length / PARTICIPANTS_PER_PAGE);
+  const pageParticipants = PARTICIPANTS.slice(
+    (participantPage - 1) * PARTICIPANTS_PER_PAGE,
+    participantPage * PARTICIPANTS_PER_PAGE
+  );
+  const competitorCount = PARTICIPANTS.filter((person) => person.track === "Competitor").length;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -302,11 +334,11 @@ function Events() {
             }`}
           >
             {tab.label}
-            {tab.id === "archive" && (
+            {tab.count !== undefined && (
               <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] ${
                 activeTab === tab.id ? "bg-white/15 text-white" : "bg-gray-100 text-gray-600"
               }`}>
-                {archive.length}
+                {tab.count}
               </span>
             )}
           </button>
@@ -683,6 +715,85 @@ function Events() {
               </button>
             </div>
           </form>
+        </SectionCard>
+      )}
+
+      {activeTab === "participants" && (
+        <SectionCard className="!p-0 overflow-hidden">
+          <div className="flex flex-col justify-between gap-3 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:p-7">
+            <div>
+              <h2 className="text-lg font-black text-[#19244E]">Event Participants</h2>
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {event.title} · Sample registrations
+              </p>
+            </div>
+            <div className="flex gap-2 text-[10px] font-extrabold">
+              <span className="rounded-md bg-[#19244E] px-2.5 py-1 text-white">
+                {competitorCount} Competitors
+              </span>
+              <span className="rounded-md bg-orange-50 px-2.5 py-1 text-[#E58422]">
+                {PARTICIPANTS.length - competitorCount} Spectators
+              </span>
+            </div>
+          </div>
+
+          <ul className="divide-y divide-gray-100">
+            {pageParticipants.map((person) => (
+              <li
+                key={person.id}
+                className={`flex items-center gap-3 px-5 py-3 sm:px-7 ${person.isNew ? "bg-orange-50/60" : ""}`}
+              >
+                <span className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#19244E] text-[11px] font-black text-white sm:flex">
+                  {person.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-extrabold text-[#19244E]">
+                    <span className="truncate">{person.name}</span>
+                    {person.isNew && (
+                      <span className="shrink-0 rounded-md bg-[#E58422] px-1.5 py-0.5 text-[9px] font-black uppercase text-white">
+                        New
+                      </span>
+                    )}
+                  </p>
+                  <p className="truncate text-[11px] text-gray-400">{person.email}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className={`rounded-md px-2 py-1 text-[10px] font-bold ${
+                    person.track === "Competitor"
+                      ? "bg-[#19244E]/10 text-[#19244E]"
+                      : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {person.track}
+                  </span>
+                  <p className="mt-1.5 hidden text-[10px] text-gray-400 sm:block">
+                    {person.registered}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 sm:px-7">
+            <button
+              type="button"
+              onClick={() => setParticipantPage((page) => page - 1)}
+              disabled={participantPage === 1}
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-4 text-xs font-extrabold text-[#19244E] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="text-xs font-bold text-gray-500">
+              Page {participantPage} of {totalParticipantPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setParticipantPage((page) => page + 1)}
+              disabled={participantPage === totalParticipantPages}
+              className="min-h-11 rounded-xl border border-gray-200 bg-white px-4 text-xs font-extrabold text-[#19244E] hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </SectionCard>
       )}
 

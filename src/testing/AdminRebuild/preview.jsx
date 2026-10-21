@@ -18,6 +18,8 @@ import UserManagement from "./pages/UserManagement";
 import AuditLogs from "./pages/AuditLogs";
 import Events from "./pages/Events";
 import Settings from "./pages/Settings";
+import AdminLogin from "./pages/AdminLogin";
+import MyAccount from "./pages/MyAccount";
 
 const sections = [
   {
@@ -124,11 +126,20 @@ function AdminRebuildApp() {
       <Routes>
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/admin/dashboard"
           element={
             <AdminLayout activePage="Dashboard">
               <AdminDashboard />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/account"
+          element={
+            <AdminLayout activePage="My Account">
+              <MyAccount />
             </AdminLayout>
           }
         />

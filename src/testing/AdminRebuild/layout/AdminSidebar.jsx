@@ -9,7 +9,9 @@
   Settings,
   X,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import ModalWrapper from "../components/ModalWrapper";
 
 const navigation = [
   { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
@@ -22,11 +24,54 @@ const navigation = [
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
+export function LogoutDialog({ open, onCancel }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onCancel();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onCancel]);
+
+  if (!open) return null;
+
+  return (
+    <ModalWrapper
+      title="Log out?"
+      description="You will need to log in again to manage the Beardista Brew menu."
+    >
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-11 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/admin/login")}
+          className="min-h-11 rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d47414]"
+        >
+          Log Out
+        </button>
+      </div>
+    </ModalWrapper>
+  );
+}
+
 export default function AdminSidebar({
   activePage = "Dashboard",
   mobileOpen = false,
   onClose,
 }) {
+  const [logoutOpen, setLogoutOpen] = useState(false);
+
   return (
     <>
       {mobileOpen && (
@@ -97,6 +142,7 @@ export default function AdminSidebar({
         <div className="mt-auto shrink-0 border-t border-white/10 p-5">
           <button
             type="button"
+            onClick={() => setLogoutOpen(true)}
             className="mb-3 flex w-full items-center gap-3 rounded-xl border border-rose-300/10 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-200 transition-colors hover:bg-rose-400/20"
           >
             <span aria-hidden="true">↪</span>
@@ -118,6 +164,9 @@ export default function AdminSidebar({
           </p>
         </div>
       </aside>
+
+      {/* Kept outside <aside>: its transform would trap a fixed overlay inside the sidebar. */}
+      <LogoutDialog open={logoutOpen} onCancel={() => setLogoutOpen(false)} />
     </>
   );
 }
