@@ -2186,7 +2186,7 @@ export const MobileAdminLayout = ({
                   >
                     <option value="/src/assets/hiromi.png">Iced Americano</option>
                     <option value="/src/assets/beardista blanc.jpg">Latte / Flat White</option>
-                    <option value="/src/assets/alon at apoy.png">Cold Brew Tonic</option>
+                    <option value="/src/assets/alon_at_apoy.png">Cold Brew Tonic</option>
                     <option value="/src/assets/goatee.png">Mocha Signature</option>
                   </select>
                 </div>
