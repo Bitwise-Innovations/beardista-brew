@@ -1,6 +1,6 @@
-import alonImg from '@/assets/alon at apoy.png';
+import alonImg from '@/assets/alon_at_apoy.png';
 import goateeImg from '@/assets/goatee.png';
-import chickenImg from '@/assets/chicken fingers.jpg';
+import chickenImg from '@/assets/chicken_fingers.jpg';
 import palitawImg from '@/assets/palitaw.jpg';
 
 export const customerFavoritesData = [
@@ -137,3 +137,4 @@ export const faqData = [
   { id: 3, question: "Can we bring outside food or drinks?", answer: "To uphold our food safety standards and support our kitchen staff, outside food and beverages are not permitted. We offer an extensive selection of drinks and freshly prepared artisanal bites." },
   { id: 4, question: "What payment methods do you accept?", answer: "We accept Cash, GCash, Maya, and major credit and debit cards (Visa & Mastercard) for your convenience." }
 ];
+
