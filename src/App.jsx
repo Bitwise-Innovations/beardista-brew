@@ -48,6 +48,9 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   const [isEventOpen, setIsEventOpen] = useState(false);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
 
+  // NEW: lets the Navbar's 3-line button open the menu categories drawer in MenuPage
+  const [isMenuDrawerOpen, setIsMenuDrawerOpen] = useState(false);
+
   const handleExploreMenu = () => {
     setCurrentPage('menu');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -69,6 +72,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       if (onOpenAdminLogin) onOpenAdminLogin();
       return;
     }
+    setIsMenuDrawerOpen(false); // NEW: always close the drawer when changing pages
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -87,10 +91,13 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             currentPage={currentPage}
             onNavigate={handleNavigate}
             onOpenSurvey={() => setIsSurveyOpen(true)}
+            onMenuClick={() => setIsMenuDrawerOpen(true)}
           />
           <MenuPage
             onNavigate={handleNavigate}
             onSelectItem={(item) => setSelectedItem(item)}
+            sidebarOpen={isMenuDrawerOpen}
+            onSidebarOpenChange={setIsMenuDrawerOpen}
           />
           <Footer onNavigate={handleNavigate} />
         </>
