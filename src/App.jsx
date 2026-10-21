@@ -131,6 +131,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <StayConnected wifi={wifiData} />
+          <FAQSection faqs={faqData} />
           
           <Footer onNavigate={handleNavigate} />
         </>
