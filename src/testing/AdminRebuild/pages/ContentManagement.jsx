@@ -1,4 +1,13 @@
 ﻿import React, { useState } from "react";
+import PageHeader from "../components/PageHeader";
+import DataCard from "../components/DataCard";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../components/usePageSize";
+import EmptyState from "../components/EmptyState";
+import AnnouncementsTab from "../components/announcements/AnnouncementsTab";
+import { announcements as sampleAnnouncements } from "../data/announcementsMockData";
+import { events as sampleEvents } from "../data/eventsMockData";
+import { menu_items as sampleMenuItems } from "../data/menuMockData";
 
 const initialTeam = [
   {
@@ -27,18 +36,26 @@ const inputClass =
 const labelClass =
   "mb-2 block text-xs font-bold uppercase tracking-wide text-[#19244E]";
 
+// "team" is 72px with just the icon on phones, and the same as "small" from 640px up.
 function ImagePlaceholder({ label, size = "large" }) {
+  const sizeClass = {
+    large: "h-36 w-36",
+    small: "h-24 w-24",
+    team: "h-[72px] w-[72px] sm:h-24 sm:w-24",
+  }[size];
+  const iconOnlyOnPhone = size === "team";
+
   return (
     <div
-      className={`flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-center ${
-        size === "small" ? "h-24 w-24" : "h-36 w-36"
-      }`}
+      className={`flex shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-center ${sizeClass}`}
     >
-      <span className="text-3xl" aria-hidden="true">▧</span>
-      <span className="px-2 text-xs font-semibold text-gray-500">
+      <span className={iconOnlyOnPhone ? "text-2xl sm:text-3xl" : "text-3xl"} aria-hidden="true">▧</span>
+      <span className={`px-2 text-xs font-semibold text-gray-500 ${iconOnlyOnPhone ? "hidden sm:block" : ""}`}>
         {label}
       </span>
-      <span className="text-[10px] text-gray-400">Image placeholder</span>
+      <span className={`text-[10px] text-gray-400 ${iconOnlyOnPhone ? "hidden sm:block" : ""}`}>
+        Image placeholder
+      </span>
     </div>
   );
 }
@@ -72,15 +89,16 @@ function TextAreaField({ label, value, onChange, placeholder, rows = 4 }) {
   );
 }
 
-function SectionCard({ title, description, children }) {
+function SectionCard({ title, description, footer, children }) {
   return (
-    <section className="space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:p-7">
-      <div>
-        <h2 className="text-lg font-extrabold text-[#19244E]">{title}</h2>
-        <p className="mt-1 text-sm text-gray-500">{description}</p>
-      </div>
+    <DataCard
+      title={title}
+      description={description}
+      footer={footer}
+      bodyClassName="space-y-6 p-4 sm:p-6"
+    >
       {children}
-    </section>
+    </DataCard>
   );
 }
 
@@ -100,12 +118,15 @@ export default function ContentManagement() {
     origin: "Mt. Apo Arabica and Benguet Bourbon"
   });
   const [team, setTeam] = useState(initialTeam);
+  const [announcements, setAnnouncements] = useState(sampleAnnouncements);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMember, setNewMember] = useState({
     name: "",
     role: "Barista",
     description: ""
   });
+
+  const teamPager = usePagination(team);
 
   const updateStory = (key, value) =>
     setStory((current) => ({ ...current, [key]: value }));
@@ -116,7 +137,8 @@ export default function ContentManagement() {
   const tabs = [
     { id: "story", label: "Our Story & Founder", number: "01" },
     { id: "blend", label: "Coffee Specs", number: "02" },
-    { id: "team", label: "Barista Team", number: "03" }
+    { id: "team", label: "Barista Team", number: "03" },
+    { id: "announcements", label: "Announcements", number: "04" }
   ];
 
   const publishMock = () => {
@@ -139,28 +161,20 @@ export default function ContentManagement() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#E58422]">
-            Website Administration
-          </p>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#19244E] sm:text-3xl">
-            Content Management
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Manage the story, coffee identity, and people behind Beardista Brew.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={publishMock}
-          className="rounded-xl bg-[#E58422] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-[#d47414] active:scale-[0.98]"
-        >
-          Publish Changes
-        </button>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Content Management"
+        description="Manage the story, coffee identity, and people behind Beardista Brew."
+        actions={
+          <button
+            type="button"
+            onClick={publishMock}
+            className="min-h-11 rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#d47414] active:scale-[0.98]"
+          >
+            Publish Changes
+          </button>
+        }
+      />
 
       {notice && (
         <div
@@ -179,34 +193,31 @@ export default function ContentManagement() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
+            aria-pressed={activeTab === tab.id}
+            className={`flex min-h-11 items-center gap-3 rounded-2xl border px-3 py-2.5 text-left text-[#19244E] transition sm:p-4 ${
               activeTab === tab.id
-                ? "border-[#19244E] bg-[#19244E] text-white shadow-md"
-                : "border-gray-200 bg-white text-[#19244E] hover:border-orange-300"
+                ? "border-[#E58422] bg-[#FFF3E7]"
+                : "border-[#EAE5DF] bg-white hover:border-orange-300"
             }`}
           >
             <span
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold ${
+              className={`font-display hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold sm:flex ${
                 activeTab === tab.id
-                  ? "bg-white/15 text-white"
-                  : "bg-orange-50 text-[#E58422]"
+                  ? "bg-[#E58422] text-white"
+                  : "bg-[#F8F6F3] text-[#E58422]"
               }`}
             >
               {tab.number}
             </span>
-            <span>
-              <span className="block text-sm font-bold">{tab.label}</span>
-              <span
-                className={`mt-1 block text-xs ${
-                  activeTab === tab.id ? "text-white/70" : "text-gray-500"
-                }`}
-              >
+            <span className="min-w-0">
+              <span className="block text-xs font-bold sm:text-sm">{tab.label}</span>
+              <span className="mt-1 hidden text-xs text-gray-500 sm:block">
                 {activeTab === tab.id ? "Currently editing" : "Edit section"}
               </span>
             </span>
@@ -319,6 +330,7 @@ export default function ContentManagement() {
         <SectionCard
           title="Barista Team Roster"
           description="Manage team member profiles and the descriptions shown on public story pages."
+          footer={team.length > 0 && <Pagination {...teamPager} label="Team member pages" />}
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -332,7 +344,7 @@ export default function ContentManagement() {
             <button
               type="button"
               onClick={() => setShowAddForm((current) => !current)}
-              className="self-start rounded-xl bg-[#E58422] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#d47414]"
+              className="min-h-11 self-start rounded-xl bg-[#E58422] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#d47414]"
             >
               {showAddForm ? "Cancel" : "+ Add Barista"}
             </button>
@@ -394,33 +406,54 @@ export default function ContentManagement() {
           )}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {team.map((member, index) => (
+            {teamPager.pageItems.map((member) => {
+              const memberNumber = String(team.indexOf(member) + 1).padStart(2, "0");
+              const badgeClass =
+                "rounded-lg bg-[#FFF3E7] px-2 py-1 text-xs font-bold text-[#B96916]";
+              const removeButtonClass =
+                "min-h-11 rounded-lg px-2 text-sm font-bold text-gray-400 hover:bg-red-50 hover:text-red-600";
+              const removeMember = () => {
+                setTeam((current) => current.filter((item) => item.id !== member.id));
+                setNotice("Team member removed from the local preview.");
+              };
+
+              return (
               <article
                 key={member.id}
-                className="space-y-4 rounded-2xl border border-gray-200 p-4 transition hover:border-orange-200 sm:p-5"
+                className="space-y-4 rounded-2xl border border-[#EAE5DF] p-4 transition hover:border-orange-200 sm:p-5"
               >
-                <div className="flex items-start gap-4">
-                  <ImagePlaceholder label="Team Photo" size="small" />
+                {/* Phones: photo, then badge + Remove, then name and role at full width. 640px and up: one row. */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
+                  <ImagePlaceholder label="Team Photo" size="team" />
+
+                  <div className="flex items-center justify-between gap-3 sm:hidden">
+                    <span className={badgeClass}>MEMBER {memberNumber}</span>
+                    <button
+                      type="button"
+                      onClick={removeMember}
+                      className={removeButtonClass}
+                      aria-label={`Remove ${member.name}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
                   <div className="min-w-0 flex-1">
-                    <span className="inline-block rounded-lg bg-orange-50 px-2 py-1 text-xs font-bold text-[#E58422]">
-                      MEMBER {String(index + 1).padStart(2, "0")}
+                    <span className={`hidden sm:inline-block ${badgeClass}`}>
+                      MEMBER {memberNumber}
                     </span>
-                    <h3 className="mt-2 break-words font-extrabold text-[#19244E]">
+                    <h3 className="break-normal text-sm font-extrabold text-[#19244E] sm:mt-2 sm:break-words sm:text-base">
                       {member.name}
                     </h3>
                     <p className="mt-1 text-xs font-semibold text-gray-500">
                       {member.role}
                     </p>
                   </div>
+
                   <button
                     type="button"
-                    onClick={() => {
-                      setTeam((current) =>
-                        current.filter((item) => item.id !== member.id)
-                      );
-                      setNotice("Team member removed from the local preview.");
-                    }}
-                    className="rounded-lg px-2 py-1 text-sm font-bold text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    onClick={removeMember}
+                    className={`hidden sm:block ${removeButtonClass}`}
                     aria-label={`Remove ${member.name}`}
                     title="Remove team member"
                   >
@@ -443,18 +476,28 @@ export default function ContentManagement() {
                   rows={3}
                 />
               </article>
-            ))}
+              );
+            })}
           </div>
 
           {team.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center">
-              <p className="font-bold text-[#19244E]">No team members yet</p>
-              <p className="mt-2 text-sm text-gray-500">
-                Use Add Barista to add a member to this local preview.
-              </p>
-            </div>
+            <EmptyState
+              className="rounded-2xl border border-dashed border-gray-300"
+              title="No baristas on the roster yet."
+              message="Use Add Barista to introduce the crew behind the counter."
+            />
           )}
         </SectionCard>
+      )}
+
+      {activeTab === "announcements" && (
+        <AnnouncementsTab
+          announcements={announcements}
+          setAnnouncements={setAnnouncements}
+          events={sampleEvents}
+          menuItems={sampleMenuItems}
+          notify={setNotice}
+        />
       )}
     </div>
   );

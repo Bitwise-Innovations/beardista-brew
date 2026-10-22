@@ -1,213 +1,143 @@
 ﻿import { useState } from "react";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Coffee,
-  CupSoda,
-  Eye,
-  ShoppingBag,
-  Star,
-  TrendingUp,
-  UtensilsCrossed,
-} from "lucide-react";
+import { CalendarDays, Eye, MessageSquare, UtensilsCrossed } from "lucide-react";
+import PageHeader from "../components/PageHeader";
+import StatCard, { StatGrid } from "../components/StatCard";
+import DataCard from "../components/DataCard";
+import Pagination from "../components/Pagination";
+import { usePagination } from "../components/usePageSize";
+import pastaPhoto from "../../../assets/pasta.jpg";
+import saladPhoto from "../../../assets/salad.jpg";
+import nachosPhoto from "../../../assets/nachos.png";
+import juicesPhoto from "../../../assets/juices.png";
 
-// Most viewed sample item in each group; pictures can be connected to the backend later.
+// Most viewed sample items this month, each with its real menu photo.
 const favorites = [
-  { name: "Spanish Latte", category: "Coffee", icon: Coffee, views: 1284 },
-  { name: "Matcha Latte", category: "Non-Coffee", icon: CupSoda, views: 874 },
-  { name: "Blueberry Cheesecake", category: "Food", icon: UtensilsCrossed, views: 803 },
+  { name: "Truffle Carbonara", category: "Pasta", photo: pastaPhoto, views: 1284 },
+  { name: "Garden Caesar Salad", category: "Salad", photo: saladPhoto, views: 962 },
+  { name: "Loaded Nachos", category: "Savory Bites", photo: nachosPhoto, views: 874 },
+  { name: "Fresh Fruit Juice", category: "Zero-Proof", photo: juicesPhoto, views: 803 },
 ];
+
+const stats = [
+  { label: "Total Menu Items", value: "17", sub: "Across 13 categories", icon: UtensilsCrossed },
+  { label: "Menu Views", value: "12,480", sub: "This month · sample data", icon: Eye },
+  { label: "Survey Responses", value: "326", sub: "This month · sample data", icon: MessageSquare },
+  { label: "Active Events", value: "3", sub: "Running or coming up", icon: CalendarDays },
+];
+
+function greetingFor(hour) {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function AdminDashboard() {
   const [storeOnline, setStoreOnline] = useState(true);
+  const pager = usePagination(favorites);
 
-  const stats = [
-    {
-      title: "Total Orders",
-      value: "1,284",
-      change: "+12.8%",
-      description: "compared with last month",
-      icon: ShoppingBag,
-      iconBg: "bg-blue-50 text-blue-600",
-      positive: true,
-      points: "0,20 12,15 24,18 36,8 48,12 60,3",
-    },
-    {
-      title: "Total Revenue",
-      value: "₱86,420",
-      change: "+8.2%",
-      description: "compared with last month",
-      icon: TrendingUp,
-      iconBg: "bg-emerald-50 text-emerald-600",
-      positive: true,
-      points: "0,20 12,17 24,19 36,11 48,8 60,3",
-    },
-    {
-      title: "Customer Visits",
-      value: "2,410",
-      change: "+5.4%",
-      description: "compared with last month",
-      icon: Coffee,
-      iconBg: "bg-orange-50 text-[#E58422]",
-      positive: true,
-      points: "0,19 12,13 24,16 36,9 48,12 60,5",
-    },
-    {
-      title: "Customer Rating",
-      value: "4.8/5",
-      change: "+0.3",
-      description: "compared with last month",
-      icon: Star,
-      iconBg: "bg-violet-50 text-violet-600",
-      positive: true,
-      points: "0,18 12,15 24,16 36,8 48,10 60,3",
-    },
-  ];
+  const now = new Date();
+  const today = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const storeToggle = (
+    <div className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#EAE5DF] bg-white px-4 py-2.5 shadow-sm sm:w-auto">
+      <div>
+        <p className={`text-sm font-bold ${storeOnline ? "text-emerald-700" : "text-gray-600"}`}>
+          {storeOnline ? "● Menu online" : "○ Menu paused"}
+        </p>
+        <p className="text-xs font-semibold text-gray-500">Opens at 4:00 PM</p>
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={storeOnline}
+        aria-label="Toggle store status"
+        onClick={() => setStoreOnline((value) => !value)}
+        className="flex h-11 shrink-0 items-center"
+      >
+        <span
+          className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${storeOnline ? "bg-emerald-500" : "bg-gray-400"}`}
+        >
+          <span
+            className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${storeOnline ? "translate-x-8" : "translate-x-1"}`}
+          />
+        </span>
+      </button>
+    </div>
+  );
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 font-['Plus_Jakarta_Sans',sans-serif] sm:space-y-6">
+    <div className="space-y-6">
+      <PageHeader
+        title={`${greetingFor(now.getHours())}, Jim Carlo`}
+        description={today}
+        showDescriptionOnPhone
+        actions={storeToggle}
+      />
+
       {!storeOnline && (
-        <div
-          role="alert"
-          className="rounded-2xl border border-amber-200 bg-amber-50 p-4"
-        >
-          <p className="text-sm font-extrabold text-amber-950">
-            Menu is paused.
-          </p>
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-bold text-amber-950">Menu is paused.</p>
           <p className="mt-1 text-xs leading-5 text-amber-800">
             Items show as unavailable until the store is back online.
           </p>
         </div>
       )}
 
-      {/* Dashboard banner */}
-      <section className="flex flex-col justify-between gap-4 rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:gap-6 sm:p-6 md:flex-row md:items-center md:p-8">
-        <div className="min-w-0">
-          <span className="mb-3 inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#E58422]">
-            <span className="h-2 w-2 rounded-full bg-[#E58422]" />
-            Live Operational Dashboard
-          </span>
+      <StatGrid>
+        {stats.map((stat) => (
+          <StatCard key={stat.label} {...stat} />
+        ))}
+      </StatGrid>
 
-          <h1 className="text-xl font-extrabold tracking-tight text-[#19244E] sm:text-2xl md:text-3xl">
-            Store Performance &amp; Catalog Status
-          </h1>
+      <DataCard
+        title="Customer Favorites This Month"
+        description="Most viewed menu items · Sample data"
+        bodyClassName="px-4 sm:px-6"
+        footer={<Pagination {...pager} label="Customer favorites pages" />}
+      >
+        <ol className="divide-y divide-[#EFEAE4]">
+          {pager.pageItems.map(({ name, category, photo, views }) => {
+            const rank = favorites.findIndex((item) => item.name === name) + 1;
 
-          <p className="mt-2 hidden max-w-xl text-sm leading-6 text-gray-500 sm:block">
-            Real-time overview of store performance and Caloocan store availability.
-          </p>
-        </div>
+            return (
+              <li key={name} className="flex min-w-0 items-center gap-3 py-3">
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                    rank === 1
+                      ? "bg-[#E58422] text-white"
+                      : "bg-[#FFF3E7] text-[#B96916]"
+                  }`}
+                >
+                  {rank}
+                </span>
 
-        <div className="flex shrink-0 items-center justify-between gap-5 rounded-2xl border border-orange-200 bg-[#FFF3E7] p-4 sm:justify-start">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-wide text-[#19244E]">
-              Global Store Availability
-            </p>
-            <p className={`mt-1 text-xs font-bold ${storeOnline ? "text-emerald-700" : "text-gray-600"}`}>
-              {storeOnline ? "● Menu Online & Active" : "○ Ordering Temporarily Paused"}
-            </p>
-          </div>
+                <img
+                  src={photo}
+                  alt=""
+                  className="h-11 w-11 shrink-0 rounded-xl object-cover"
+                />
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={storeOnline}
-            aria-label="Toggle global store availability"
-            onClick={() => setStoreOnline((value) => !value)}
-            className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors ${storeOnline ? "bg-emerald-500" : "bg-gray-400"}`}
-          >
-            <span className={`h-5 w-5 rounded-full bg-white shadow transition-transform ${storeOnline ? "translate-x-8" : "translate-x-1"}`} />
-          </button>
-        </div>
-      </section>
-
-      {/* Four statistic cards */}
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 2xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          const TrendIcon = stat.positive ? ArrowUpRight : ArrowDownRight;
-
-          return (
-            <article
-              key={stat.title}
-              className="min-w-0 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-6"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 sm:text-xs">{stat.title}</p>
-                  <p className="mt-2 text-xl font-extrabold tracking-tight text-[#19244E] sm:mt-3 sm:text-2xl">{stat.value}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-[#19244E]">{name}</p>
+                  <p className="truncate text-xs font-semibold text-gray-400">{category}</p>
                 </div>
-                <div className={`hidden rounded-xl p-3 sm:block ${stat.iconBg}`}>
-                  <Icon size={21} />
-                </div>
-              </div>
 
-              <div className="mt-3 flex items-end justify-between gap-2 sm:mt-5">
-                <div>
-                  <p className="flex items-center gap-1 text-xs font-extrabold text-emerald-600">
-                    <TrendIcon size={15} />
-                    {stat.change}
-                  </p>
-                  <p className="mt-1 hidden text-[10px] text-gray-400 sm:block">{stat.description}</p>
-                </div>
-                <svg viewBox="0 0 60 24" className="hidden h-8 w-16 shrink-0 sm:block" aria-hidden="true">
-                  <polyline
-                    points={stat.points}
-                    fill="none"
-                    stroke="#E58422"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-            </article>
-          );
-        })}
-      </section>
-
-      {/* Top item from each group as compact list rows */}
-      <section className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm sm:p-7">
-        <div className="mb-2 border-b border-gray-100 pb-4 sm:mb-3 sm:pb-5">
-          <h2 className="text-base font-extrabold text-[#19244E] sm:text-lg">
-            Customer Favorites This Month
-          </h2>
-          <p className="mt-1 hidden text-sm text-gray-500 sm:block">
-            Most viewed Coffee, Non-Coffee and Food item · Sample data
-          </p>
-        </div>
-
-        <ol className="divide-y divide-gray-100">
-          {favorites.map(({ name, category, icon: Icon, views }, index) => (
-            <li key={name} className="flex min-w-0 items-center gap-3 py-3">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-extrabold ${
-                  index === 0
-                    ? "bg-[#E58422] text-white"
-                    : "bg-gray-50 text-[#19244E] ring-1 ring-gray-200"
-                }`}
-              >
-                {index + 1}
-              </span>
-
-              {/* Picture placeholder */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-gray-300">
-                <Icon size={18} strokeWidth={1.7} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-extrabold text-[#19244E]">{name}</p>
-                <p className="truncate text-[11px] font-semibold text-gray-400">{category}</p>
-              </div>
-
-              <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-gray-600">
-                <Eye size={13} className="hidden text-gray-400 sm:block" />
-                {views.toLocaleString()}
-                <span className="hidden font-semibold text-gray-400 sm:inline">views</span>
-              </span>
-            </li>
-          ))}
+                <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-gray-600">
+                  <Eye size={13} className="hidden text-gray-400 sm:block" />
+                  {views.toLocaleString()}
+                  <span className="hidden font-semibold text-gray-400 sm:inline">views</span>
+                </span>
+              </li>
+            );
+          })}
         </ol>
-      </section>
+      </DataCard>
     </div>
   );
 }

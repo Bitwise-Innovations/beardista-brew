@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Menu,
   Bell,
-  Search,
   MessageSquare,
   CalendarDays,
   ClipboardCheck,
@@ -13,6 +12,8 @@ import {
   VolumeX,
 } from "lucide-react";
 import AdminSidebar, { LogoutDialog } from "./AdminSidebar";
+import OwnerAvatar from "../components/OwnerAvatar";
+import { OWNER } from "../components/brandAssets";
 
 const MUTE_KEY = "beardista-admin-notifications-muted";
 const OPENING_HOUR = 16; // The café opens at 4:00 PM.
@@ -332,15 +333,16 @@ export default function AdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-[#EEF2F7] text-gray-900">
+    // Fills the visible screen exactly (dvh ignores the phone address bar), so only <main> scrolls.
+    <div className="h-[100dvh] overflow-hidden bg-[#F8F6F3] text-gray-900">
       <AdminSidebar
         activePage={activePage}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />
 
-      <div className="min-h-screen min-w-0 lg:pl-72">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-gray-100 bg-white/95 px-3 backdrop-blur sm:px-6 lg:px-8">
+      <div className="flex h-full min-w-0 flex-col lg:pl-72">
+        <header className="relative z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#EAE5DF] bg-white/95 px-4 backdrop-blur sm:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -363,11 +365,6 @@ export default function AdminLayout({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-            <div className="hidden items-center gap-2 rounded-xl bg-gray-50 px-3 py-2 md:flex">
-              <Search size={16} className="text-gray-400" />
-              <span className="text-xs text-gray-400">Search anything...</span>
-            </div>
-
             <div ref={notificationsRef} className="relative">
               <button
                 type="button"
@@ -440,9 +437,7 @@ export default function AdminLayout({
                 aria-expanded={openMenu === "account"}
                 className="flex h-11 w-11 items-center justify-center rounded-full"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#19244E] text-xs font-bold text-white transition hover:ring-4 hover:ring-gray-100">
-                  AD
-                </span>
+                <OwnerAvatar className="h-9 w-9 text-xs transition hover:ring-4 hover:ring-gray-100" />
               </button>
 
               {openMenu === "account" && (
@@ -450,9 +445,12 @@ export default function AdminLayout({
                   role="menu"
                   className="absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 shadow-xl"
                 >
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-bold text-[#19244E]">Administrator</p>
-                    <p className="text-xs text-gray-400">Owner</p>
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <OwnerAvatar className="h-9 w-9 text-xs" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-[#19244E]">{OWNER.name}</p>
+                      <p className="text-xs text-gray-400">{OWNER.role}</p>
+                    </div>
                   </div>
 
                   <button
@@ -486,8 +484,10 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1600px] min-w-0 p-4 sm:p-6 lg:p-8">
-          {children}
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="w-full min-w-0 px-4 py-5 sm:px-8 sm:py-6">
+            {children}
+          </div>
         </main>
       </div>
 

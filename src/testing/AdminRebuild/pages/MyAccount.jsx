@@ -9,15 +9,19 @@ import {
   UserRound,
 } from "lucide-react";
 import ModalWrapper from "../components/ModalWrapper";
+import PageHeader from "../components/PageHeader";
+import OwnerAvatar from "../components/OwnerAvatar";
+import { OWNER } from "../components/brandAssets";
+import DataCard from "../components/DataCard";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const initialAccount = {
-  name: "Administrator",
-  email: "admin@beardistabrew.com",
+  name: OWNER.name,
+  email: OWNER.email,
   // A new email waits here until the confirmation code is entered.
   pendingEmail: "",
-  role: "Owner",
+  role: OWNER.role,
   lastLogin: "Oct 22, 2026 · 8:14 AM",
 };
 
@@ -142,15 +146,10 @@ export default function MyAccount() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold text-[#E58422]">ADMIN WORKSPACE</p>
-        <h1 className="mt-2 text-2xl font-extrabold text-[#19244E] sm:text-3xl">
-          My Account
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          View and edit your account details, or change your password.
-        </p>
-      </div>
+      <PageHeader
+        title="My Account"
+        description="View and edit your account details, or change your password."
+      />
 
       {success && (
         <p
@@ -161,12 +160,10 @@ export default function MyAccount() {
         </p>
       )}
 
-      <section className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+      <DataCard>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#19244E] text-sm font-bold text-white sm:h-14 sm:w-14">
-              AD
-            </div>
+            <OwnerAvatar className="h-12 w-12 text-sm sm:h-14 sm:w-14" />
             <div className="min-w-0">
               <h2 className="truncate text-base font-extrabold text-[#19244E] sm:text-lg">
                 {account.name}
@@ -300,7 +297,7 @@ export default function MyAccount() {
             ))}
           </dl>
         )}
-      </section>
+      </DataCard>
 
       {modalOpen && (
         <ModalWrapper
