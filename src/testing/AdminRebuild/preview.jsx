@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 
 import "../../index.css";
+import "./admin.css";
 import AdminLayout from "./layout/AdminLayout";
 import AdminDashboard from "./pages/AdminDashboard";
 import MenuManagement from "./pages/MenuManagement";
@@ -18,6 +19,8 @@ import UserManagement from "./pages/UserManagement";
 import AuditLogs from "./pages/AuditLogs";
 import Events from "./pages/Events";
 import Settings from "./pages/Settings";
+import AdminLogin from "./pages/AdminLogin";
+import MyAccount from "./pages/MyAccount";
 
 const sections = [
   {
@@ -98,7 +101,7 @@ function PlaceholderPage({ title, description }) {
 
 function NotFoundPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#EEF2F7] px-5">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8F6F3] px-5">
       <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-sm">
         <p className="text-sm font-bold text-[#E58422]">404 ERROR</p>
         <h1 className="mt-3 text-2xl font-extrabold text-[#19244E]">
@@ -124,11 +127,20 @@ function AdminRebuildApp() {
       <Routes>
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/admin/dashboard"
           element={
             <AdminLayout activePage="Dashboard">
               <AdminDashboard />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/admin/account"
+          element={
+            <AdminLayout activePage="My Account">
+              <MyAccount />
             </AdminLayout>
           }
         />
