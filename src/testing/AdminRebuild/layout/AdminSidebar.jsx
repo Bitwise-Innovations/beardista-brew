@@ -11,6 +11,7 @@
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../backend/hooks/useAuth";
 import ModalWrapper from "../components/ModalWrapper";
 import BrandMark from "../components/BrandMark";
 import OwnerAvatar from "../components/OwnerAvatar";
@@ -29,6 +30,8 @@ const navigation = [
 
 export function LogoutDialog({ open, onCancel }) {
   const navigate = useNavigate();
+  const { logOut, isLoggingOut } = useAuth();
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -43,11 +46,27 @@ export function LogoutDialog({ open, onCancel }) {
 
   if (!open) return null;
 
+  const handleLogout = async () => {
+    setError("");
+    try {
+      await logOut();
+      onCancel();
+      navigate("/admin/login");
+    } catch {
+      setError("We couldn't log you out. Please try again.");
+    }
+  };
+
   return (
     <ModalWrapper
       title="Log out?"
       description="You will need to log in again to manage the Beardista Brew menu."
     >
+      {error && (
+        <p role="alert" className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          {error}
+        </p>
+      )}
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
@@ -58,10 +77,11 @@ export function LogoutDialog({ open, onCancel }) {
         </button>
         <button
           type="button"
-          onClick={() => navigate("/admin/login")}
+          onClick={handleLogout}
+          disabled={isLoggingOut}
           className="min-h-11 rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d47414]"
         >
-          Log Out
+          {isLoggingOut ? "Logging Out..." : "Log Out"}
         </button>
       </div>
     </ModalWrapper>
