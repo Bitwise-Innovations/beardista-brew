@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import { useAuth } from "../../../backend/hooks/useAuth";
 import BaristaAnimation from "../components/BaristaAnimation";
 import BrandMark from "../components/BrandMark";
 import BrewingLoader from "../components/BrewingLoader";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// There is no backend yet, so signing in only waits a moment to show the loader.
-const FAKE_SIGN_IN_MS = 900;
 
 const inputClass =
   "h-12 w-full rounded-xl border border-gray-200 bg-gray-50 pl-11 text-sm text-gray-800 outline-none transition focus:border-[#E58422] focus:bg-white focus:ring-2 focus:ring-orange-100";
@@ -16,17 +14,14 @@ const inputClass =
 // Desktop: 60% brand panel + 40% login card. Phones: only the card, logo on top.
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const { logIn, sendPasswordReset, isLoggingIn, isSendingPasswordReset } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
-  const [signingIn, setSigningIn] = useState(false);
-  const timerRef = useRef(null);
 
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setInfo("");
 
@@ -38,19 +33,39 @@ export default function AdminLogin() {
       setError("Enter a valid email address.");
       return;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+
+    setError("");
+    try {
+      await logIn({ email: email.trim(), password });
+      navigate("/admin/dashboard");
+    } catch (authError) {
+      if (authError.code === "invalid_credentials") {
+        setError("Email or password is incorrect. Please try again.");
+      } else if (authError.code === "account_disabled") {
+        setError("This account is disabled. Contact the owner for help.");
+      } else if (authError.code === "profile_missing") {
+        setError("Your staff profile is not set up yet. Contact the owner for help.");
+      } else {
+        setError("We couldn't log you in. Please try again.");
+      }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError("");
+    setInfo("");
+
+    if (!email.trim() || !EMAIL_PATTERN.test(email.trim())) {
+      setError("Enter a valid email address to reset your password.");
       return;
     }
 
-    setError("");
-    setSigningIn(true);
-    timerRef.current = setTimeout(() => navigate("/admin/dashboard"), FAKE_SIGN_IN_MS);
-  };
-
-  const handleForgotPassword = () => {
-    setError("");
-    setInfo("Ask the store owner to reset your password. Self-service reset is not available in this preview.");
+    try {
+      await sendPasswordReset(email.trim());
+      setInfo("If an account exists for that email, a password reset link will be sent.");
+    } catch {
+      setError("We couldn't send a reset link. Please try again.");
+    }
   };
 
   return (
@@ -127,9 +142,10 @@ export default function AdminLogin() {
                   <button
                     type="button"
                     onClick={handleForgotPassword}
+                    disabled={isSendingPasswordReset}
                     className="inline-flex min-h-11 items-center text-xs font-bold text-[#E58422] hover:underline"
                   >
-                    Forgot password?
+                    {isSendingPasswordReset ? "Sending reset link..." : "Forgot password?"}
                   </button>
                 </div>
                 <div className="relative">
@@ -161,10 +177,10 @@ export default function AdminLogin() {
 
               <button
                 type="submit"
-                disabled={signingIn}
+                disabled={isLoggingIn}
                 className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#E58422] px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#cf7419] disabled:cursor-wait"
               >
-                {signingIn ? <BrewingLoader tone="light" size={26} /> : "Log In"}
+                {isLoggingIn ? <BrewingLoader tone="light" size={26} /> : "Log In"}
               </button>
             </form>
 
@@ -173,10 +189,6 @@ export default function AdminLogin() {
               Staff access only
             </p>
           </div>
-
-          <p className="mt-4 text-center text-xs leading-5 text-gray-400">
-            Design preview: any valid email and 8+ character password opens the dashboard.
-          </p>
         </div>
       </main>
     </div>
