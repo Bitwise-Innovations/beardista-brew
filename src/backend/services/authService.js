@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../lib/supabase";
 
 export class AuthServiceError extends Error {
   constructor(message, code) {
