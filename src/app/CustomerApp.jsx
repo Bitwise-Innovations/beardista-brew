@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useFeatured } from '../hooks/useFeatured.js';
+import { useFeatured } from "../backend/hooks/useFeatured.js";
 // --- CUSTOMER DATA ---
 import {
   customerFavoritesData,
@@ -30,6 +30,7 @@ import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
 import { SurveyModal } from '../features/landing/SurveyModal.jsx';
 import { EventDetailsModal } from '../features/landing/EventDetailsModal.jsx';
 import { StoryModal } from '../features/landing/StoryModal.jsx';
+
 
 const PAGE_PATHS = { home: '/', menu: '/menu', story: '/our-story' };
 
@@ -76,7 +77,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF3E7] text-[#111111] flex flex-col antialiased selection:bg-[#E58422] selection:text-white">
+    <div className="min-h-dvh overflow-x-hidden bg-[#FFF3E7] text-[#111111] flex flex-col antialiased ...">
 
       {currentPage === 'story' ? (
         <OurStory

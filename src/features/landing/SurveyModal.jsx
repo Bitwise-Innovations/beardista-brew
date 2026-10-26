@@ -92,7 +92,7 @@ export const SurveyModal = ({ isOpen, onClose }) => {
     >
       {/* Modal Dialog Card */}
       <div
-        className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col max-h-[92vh] animate-scaleUp text-[#111111]"
+        className="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col max-h-[92dvh] animate-scaleUp text-[#111111]"
         onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
       >
         
