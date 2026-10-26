@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../../backend/hooks/useAuth';
 
 export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileLogin }) => {
   const [username, setUsername] = useState('');
@@ -6,27 +7,26 @@ export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileL
   const [errorMessage, setErrorMessage] = useState('');
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { logIn, isLoggingIn } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
 
-    // STRICT REQUIREMENT: username must be "admin" and password must be "admin2026"
-    if (username.trim() === 'admin' && password === 'admin2026') {
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        if (onLoginSuccess) {
-          onLoginSuccess({
-            username: username.trim(),
-            role: 'Owner Admin',
-            authenticatedAt: new Date().toISOString()
-          });
-        }
-      }, 400);
-    } else {
-      setErrorMessage('Invalid credentials. Please try again.');
+    try {
+      await logIn({ email: username.trim(), password });
+      onLoginSuccess?.();
+    } catch (error) {
+      console.error('Admin sign-in failed:', error);
+      if (error.code === 'account_disabled') {
+        setErrorMessage('This account is disabled. Contact the owner for help.');
+      } else if (error.code === 'profile_missing') {
+        setErrorMessage('Your staff profile could not be found. Contact the owner for help.');
+      } else if (error.code === 'invalid_credentials') {
+        setErrorMessage('Email or password is incorrect.');
+      } else {
+        setErrorMessage('Unable to sign in right now. Please try again.');
+      }
     }
   };
 
@@ -81,10 +81,10 @@ export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileL
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Username Input Field */}
+          {/* Email Input Field */}
           <div>
             <label className="block text-xs font-bold text-[#19244E] uppercase tracking-wider mb-2">
-              Username
+              Email
             </label>
             <div className="relative">
               <span className="absolute left-4 top-3.5 text-gray-400 pointer-events-none">
@@ -93,14 +93,15 @@ export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileL
                 </svg>
               </span>
               <input
-                type="text"
+                type="email"
+                autoComplete="username"
                 required
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   if (errorMessage) setErrorMessage('');
                 }}
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-[#E58422] focus:bg-white outline-none transition-all placeholder:text-gray-400"
               />
             </div>
@@ -121,6 +122,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileL
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 required
                 value={password}
                 onChange={(e) => {
@@ -162,10 +164,10 @@ export const AdminLogin = ({ onLoginSuccess, onBackToCustomer, onSwitchToMobileL
 
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoggingIn}
             className="w-full py-3.5 px-6 bg-[#E58422] hover:bg-[#d47414] text-white text-sm font-extrabold rounded-xl shadow-md active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-70"
           >
-            {isLoading ? (
+            {isLoggingIn ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Verifying...</span>
