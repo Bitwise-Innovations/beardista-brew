@@ -443,7 +443,11 @@ export const MenuManagement = ({
   // STATE MANAGEMENT
   // ---------------------------------------------------------------------------
   const [internalItems, setInternalItems] = useState(initialMenuData);
-  const [categoriesList, setCategoriesList] = useState(CATEGORY_PILLS);
+  const [internalCategoriesList, setCategoriesList] = useState(CATEGORY_PILLS);
+  // When AdminPortal passes real categories (from the database), the pills use them
+  const categoriesList = externalCategories
+    ? ['All Items', ...externalCategories.map((c) => c.name).filter((n) => n !== 'All Items')]
+    : internalCategoriesList;
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [internalGlobalAvailability, setInternalGlobalAvailability] = useState(true);

@@ -2,14 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // --- CUSTOMER DATA ---
-import {
-  customerFavoritesData,
-  whatsBrewingData,
-  whyChooseData,
-  blendDetailsData,
-  reviewsData,
-  wifiData
-} from '../data/menu.jsx';
+
 
 // --- CUSTOMER COMPONENTS ---
 import { Navbar } from '../components/Navbar.jsx';
@@ -24,6 +17,20 @@ import { BeardistaBlend } from '../features/landing/BeardistaBlend.jsx';
 import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
+import {
+  customerFavoritesData,
+  whatsBrewingData,
+  whyChooseData,
+  blendDetailsData,
+  reviewsData,
+  wifiData,
+} from '../data/customerData.js';
+
+// --- LIVE DATA (Supabase) ---
+import { useMenuItems, useCategories } from '../backend/hooks/useMenu';
+import { buildFavorites } from '../backend/mappers/menuMapper';
+import { useEvents } from '../backend/hooks/useEvents';
+import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
 
 // --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
@@ -40,11 +47,26 @@ const PAGE_PATHS = { home: '/', menu: '/menu', story: '/our-story' };
 export const CustomerApp = ({ onOpenAdminLogin }) => {
    const navigate = useNavigate();
   const location = useLocation();
-
+  
 
   const currentPage =
     location.pathname.startsWith('/menu') ? 'menu' :
     location.pathname.startsWith('/our-story') ? 'story' : 'home';
+
+  // Customer Favorites: real data from Supabase. While loading, on error,
+  // or if no item is marked favorite, the sample data is shown instead.
+  const { data: menuItems } = useMenuItems({ availableOnly: true });
+  const { data: categories } = useCategories({ activeOnly: true });
+  const liveFavorites = buildFavorites(menuItems, categories);
+  const favorites = liveFavorites.length > 0 ? liveFavorites : customerFavoritesData;
+
+  // What's Brewing event card: real event from Supabase. While loading, on error,
+  // or when there is no running event, the sample event is shown instead.
+  const { data: events } = useEvents();
+  const brewingData = {
+    ...whatsBrewingData,
+    event: buildFeaturedEvent(events) ?? whatsBrewingData.event,
+  };
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
@@ -106,11 +128,11 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
           />
           <Hero onExploreMenu={handleExploreMenu} />
           <CustomerFavorites
-            items={customerFavoritesData}
+            items={favorites}
             onViewDetails={(item) => setSelectedItem(item)}
           />
           <WhatsBrewing
-            data={whatsBrewingData}
+            data={brewingData}
             onRegister={() => setIsEventOpen(true)}
             onViewTsamporado={handleViewTsamporado}
           />
@@ -131,7 +153,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       <EventDetailsModal
         isOpen={isEventOpen}
         onClose={() => setIsEventOpen(false)}
-        eventData={whatsBrewingData.event}
+        eventData={brewingData.event}
       />
       <StoryModal isOpen={isStoryOpen} onClose={() => setIsStoryOpen(false)} />
     </div>

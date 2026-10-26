@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Mock Data
+// Sample data (temporary; replaced by Supabase hooks page by page)
 import {
   initialAdminStats,
   customerFavoritesThisMonth,
-  initialCategories,
-  initialMenuItems,
   initialAuditLogs,
   individualFeedbackList,
   initialContentData,
   initialEventsData,
-  initialSettingsData
-} from '@/data/adminMockData.jsx';
+  initialSettingsData,
+} from '../../data/adminMockData.js';
+
+// Live menu data (Supabase), shared with the customer site
+import {
+  useCategories,
+  useMenuItems,
+  useCreateCategory,
+  useCreateMenuItem,
+  useUpdateMenuItem,
+  useDeleteMenuItem,
+} from '../../backend/hooks/useMenu';
+import { buildCategories, buildAdminMenuItems } from '../../backend/mappers/menuMapper';
 
 // Pages / Views
 import { LoginView } from './pages/LoginView.jsx';
@@ -38,8 +47,15 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
   const [activePage, setActivePage] = useState('dashboard');
   const [stats, setStats] = useState(initialAdminStats);
   const [favorites, setFavorites] = useState(customerFavoritesThisMonth);
-  const [categories, setCategories] = useState(initialCategories);
-  const [menuItems, setMenuItems] = useState(initialMenuItems);
+  // Menu: real data from Supabase (same tables the customer site reads)
+  const categoriesQuery = useCategories();
+  const itemsQuery = useMenuItems();
+  const categories = buildCategories(categoriesQuery.data);
+  const menuItems = buildAdminMenuItems(itemsQuery.data, categoriesQuery.data);
+  const createCategory = useCreateCategory();
+  const createItem = useCreateMenuItem();
+  const updateItem = useUpdateMenuItem();
+  const deleteItem = useDeleteMenuItem();
   const [auditLogs, setAuditLogs] = useState(initialAuditLogs);
   const [feedbackList, setFeedbackList] = useState(individualFeedbackList);
   const [contentData, setContentData] = useState(initialContentData);
@@ -61,6 +77,13 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
       setToastMessage(null);
     }, 3500);
   };
+
+  useEffect(() => {
+    if (itemsQuery.isError || categoriesQuery.isError) {
+      showToast('We could not load the menu. Please refresh the page.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemsQuery.isError, categoriesQuery.isError]);
 
   const logAudit = (action, actionType, itemAffected, itemId, previousValue, newValue) => {
     const now = new Date();
@@ -102,49 +125,81 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
     logAudit('System Mode', 'sync', 'Global Availability', 'SYS-AVAIL', globalAvailability ? 'Online' : 'Paused', nextState ? 'Online' : 'Paused');
   };
 
-  const handleToggleItemAvailability = (itemId) => {
+  const handleToggleItemAvailability = async (itemId) => {
     if (!globalAvailability) {
       showToast('Global Store Availability is paused. Switch Global Store Online to update item inventory.');
       return;
     }
-    setMenuItems((prev) =>
-      prev.map((item) => {
-        if (item.id === itemId) {
-          const currentStatus = item.available !== undefined ? item.available : item.availability;
-          const updated = !currentStatus;
-          logAudit('Availability Toggle', 'update', item.name, item.id, currentStatus ? 'Available' : 'Unavailable', updated ? 'Available' : 'Unavailable');
-          showToast(`${item.name} is now ${updated ? 'available' : 'unavailable'}`);
-          return { ...item, availability: updated, available: updated };
-        }
-        return item;
-      })
-    );
-  };
+    const item = menuItems.find((i) => i.id === itemId);
+    if (!item) return;
 
-  const handleSaveCategory = (newCat) => {
-    setCategories((prev) => [...prev, newCat]);
-    showToast(`Category "${newCat.name}" created successfully!`);
-    logAudit('Create Category', 'create', newCat.name, newCat.id, 'None', 'New category added');
-  };
-
-  const handleSaveItem = (savedItem) => {
-    const existingIndex = menuItems.findIndex((i) => i.id === savedItem.id);
-    if (existingIndex >= 0) {
-      const prev = menuItems[existingIndex];
-      setMenuItems((prevList) => prevList.map((item) => (item.id === savedItem.id ? savedItem : item)));
-      showToast(`Updated "${savedItem.name}" successfully.`);
-      logAudit('Update Item', 'update', savedItem.name, savedItem.id, `₱${prev.price}`, `₱${savedItem.price}`);
-    } else {
-      setMenuItems((prevList) => [savedItem, ...prevList]);
-      showToast(`Added "${savedItem.name}" to menu inventory.`);
-      logAudit('Create Item', 'create', savedItem.name, savedItem.id, 'None', `Base Price: ₱${savedItem.price}`);
+    const updated = !item.available;
+    try {
+      await updateItem.mutateAsync({ id: itemId, isAvailable: updated });
+      logAudit('Availability Toggle', 'update', item.name, item.id, item.available ? 'Available' : 'Unavailable', updated ? 'Available' : 'Unavailable');
+      showToast(`${item.name} is now ${updated ? 'available' : 'unavailable'}`);
+    } catch {
+      showToast('We could not update that item. Please try again.');
     }
   };
 
-  const handleArchiveItem = (item) => {
-    setMenuItems((prev) => prev.filter((i) => i.id !== item.id));
-    showToast(`"${item.name}" moved to archive.`);
-    logAudit('Archive Item', 'delete', item.name, item.id, 'Catalog Active', 'Archived / Removed from active menu');
+  const handleSaveCategory = async (newCat) => {
+    try {
+      await createCategory.mutateAsync({
+        name: newCat.name,
+        sortOrder: newCat.sortPriority,
+        isActive: !newCat.isDraft && newCat.publishToOnlineMenu !== false,
+      });
+      showToast(`Category "${newCat.name}" created successfully!`);
+      logAudit('Create Category', 'create', newCat.name, newCat.id, 'None', 'New category added');
+    } catch {
+      showToast('We could not create that category. Please try again.');
+    }
+  };
+
+  // The drawer's default placeholder photo is not a real image, so it is not saved.
+  const PLACEHOLDER_IMAGE = 'images.unsplash.com/photo-1514432324607';
+
+  const handleSaveItem = async (savedItem) => {
+    const existing = menuItems.find((i) => i.id === savedItem.id);
+    const category = categories.find((c) => c.name === savedItem.category);
+    const payload = {
+      categoryId: category?.id ?? null,
+      name: savedItem.name,
+      description: savedItem.description,
+      price: savedItem.price,
+      imageUrl:
+        savedItem.image && !savedItem.image.includes(PLACEHOLDER_IMAGE) ? savedItem.image : null,
+      isAvailable: savedItem.availability,
+    };
+
+    try {
+      if (existing) {
+        await updateItem.mutateAsync({ id: savedItem.id, ...payload });
+        showToast(`Updated "${savedItem.name}" successfully.`);
+        logAudit('Update Item', 'update', savedItem.name, savedItem.id, `₱${existing.price}`, `₱${savedItem.price}`);
+      } else {
+        await createItem.mutateAsync(payload);
+        showToast(`Added "${savedItem.name}" to menu inventory.`);
+        logAudit('Create Item', 'create', savedItem.name, savedItem.id, 'None', `Base Price: ₱${savedItem.price}`);
+      }
+      if (!category) {
+        showToast(`Saved, but category "${savedItem.category}" was not found, so it has no category yet.`);
+      }
+    } catch {
+      showToast('We could not save that item. Please try again.');
+    }
+  };
+
+  // The menu has no "archived" column, so this removes the item (the page already asks to confirm).
+  const handleArchiveItem = async (item) => {
+    try {
+      await deleteItem.mutateAsync(item.id);
+      showToast(`"${item.name}" removed from the menu.`);
+      logAudit('Archive Item', 'delete', item.name, item.id, 'Catalog Active', 'Removed from active menu');
+    } catch {
+      showToast('We could not remove that item. Please try again.');
+    }
   };
 
   const handleOpenEditItem = (item) => {
@@ -320,7 +375,7 @@ export const AdminPortal = ({ onSwitchToCustomerMenu, onLogout, onSwitchToMobile
       </main>
 
       <AddCategoryDrawer isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} onSave={handleSaveCategory} />
-      <EditMenuItemDrawer isOpen={isEditItemOpen} item={editingItem} onClose={() => setIsEditItemOpen(false)} onSave={handleSaveItem} onArchive={handleArchiveItem} />
+      <EditMenuItemDrawer categoryOptions={categories.map((c) => c.name)} isOpen={isEditItemOpen} item={editingItem} onClose={() => setIsEditItemOpen(false)} onSave={handleSaveItem} onArchive={handleArchiveItem} />
       <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} onSuccess={(msg) => showToast(msg)} />
       <LogoutModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} onConfirm={handleConfirmLogout} />
       <SurveyBuilderModal isOpen={isSurveyBuilderOpen} onClose={() => setIsSurveyBuilderOpen(false)} onSave={handleSaveSurvey} />

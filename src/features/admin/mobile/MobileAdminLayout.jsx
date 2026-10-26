@@ -1,16 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-import {
-  initialMenuItems,
-  initialAuditLogs,
-  initialContentData,
-  initialAdminStats,
-  customerFavoritesThisMonth,
-  initialCategories,
-  individualFeedbackList,
-  initialEventsData,
-  initialSettingsData
-} from '@/data/adminMockData.jsx';
+
 
 // Data sync for User Management
 import { INITIAL_USERS } from '../pages/UserManagement.jsx';

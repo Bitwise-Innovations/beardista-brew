@@ -16,7 +16,9 @@ const CATEGORY_OPTIONS = [
   'Extras'
 ];
 
-export const EditMenuItemDrawer = ({ isOpen, item, onClose, onSave, onArchive }) => {
+export const EditMenuItemDrawer = ({ isOpen, item, onClose, onSave, onArchive, categoryOptions }) => {
+  // Real category names from the database; falls back to the built-in list
+  const options = categoryOptions && categoryOptions.length > 0 ? categoryOptions : CATEGORY_OPTIONS;
   const isEditing = Boolean(item && item.id);
 
   const [formData, setFormData] = useState({
@@ -212,7 +214,7 @@ export const EditMenuItemDrawer = ({ isOpen, item, onClose, onSave, onArchive })
                   onChange={(e) => handleChange('category', e.target.value)}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-[#E58422] focus:bg-white outline-none transition-all cursor-pointer"
                 >
-                  {CATEGORY_OPTIONS.map((cat) => (
+                  {options.map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>
