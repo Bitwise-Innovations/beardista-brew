@@ -9,6 +9,8 @@ import pastaPhoto from "../../../assets/pasta.jpg";
 import saladPhoto from "../../../assets/salad.jpg";
 import nachosPhoto from "../../../assets/nachos.png";
 import juicesPhoto from "../../../assets/juices.png";
+import { useStaffIdentity } from "../components/useStaffIdentity";
+
 
 // Most viewed sample items this month, each with its real menu photo.
 const favorites = [
@@ -34,14 +36,9 @@ function greetingFor(hour) {
 export default function AdminDashboard() {
   const [storeOnline, setStoreOnline] = useState(true);
   const pager = usePagination(favorites);
+  const staff = useStaffIdentity();
 
   const now = new Date();
-  const today = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
 
   const storeToggle = (
     <div className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#EAE5DF] bg-white px-4 py-2.5 shadow-sm sm:w-auto">
@@ -74,7 +71,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${greetingFor(now.getHours())}, Jim Carlo`}
+      title={`${greetingFor(now.getHours())}, ${staff.firstName}`}
         description={today}
         showDescriptionOnPhone
         actions={storeToggle}

@@ -1,4 +1,5 @@
-﻿import {
+﻿
+import {
   LayoutDashboard,
   Coffee,
   ChartNoAxesCombined,
@@ -15,7 +16,7 @@ import { useAuth } from "../../../backend/hooks/useAuth";
 import ModalWrapper from "../components/ModalWrapper";
 import BrandMark from "../components/BrandMark";
 import OwnerAvatar from "../components/OwnerAvatar";
-import { OWNER } from "../components/brandAssets";
+import { useStaffIdentity } from "../components/useStaffIdentity";
 
 const navigation = [
   { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
@@ -94,8 +95,10 @@ export default function AdminSidebar({
   onClose,
 }) {
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const staff = useStaffIdentity();
 
   return (
+    
     <>
       {mobileOpen && (
         <button
@@ -182,8 +185,8 @@ export default function AdminSidebar({
           >
             <OwnerAvatar className="h-10 w-10 text-sm ring-2 ring-white/15" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{OWNER.name}</p>
-              <p className="mt-1 text-xs text-white/50">{OWNER.role}</p>
+              <p className="truncate text-sm font-bold">{staff.name}</p>
+              <p className="mt-1 text-xs text-white/50">{staff.role}</p>
             </div>
             <span className="sr-only">, open My Account</span>
           </NavLink>

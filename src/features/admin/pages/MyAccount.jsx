@@ -11,19 +11,12 @@ import {
 import ModalWrapper from "../components/ModalWrapper";
 import PageHeader from "../components/PageHeader";
 import OwnerAvatar from "../components/OwnerAvatar";
-import { OWNER } from "../components/brandAssets";
 import DataCard from "../components/DataCard";
+import BrewingLoader from "../components/BrewingLoader";
+import { useAuth } from "../../../backend/hooks/useAuth";
+import { useStaffIdentity } from "../components/useStaffIdentity";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const initialAccount = {
-  name: OWNER.name,
-  email: OWNER.email,
-  // A new email waits here until the confirmation code is entered.
-  pendingEmail: "",
-  role: OWNER.role,
-  lastLogin: "Oct 22, 2026 · 8:14 AM",
-};
 
 const passwordFields = [
   { name: "current", label: "Current password", autoComplete: "current-password" },
@@ -39,8 +32,28 @@ const inputClass =
 const secondaryButtonClass =
   "min-h-11 rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50";
 
+const formatLogin = (value) =>
+  value
+    ? new Date(value).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : "Never";
+
 export default function MyAccount() {
-  const [account, setAccount] = useState(initialAccount);
+  const staff = useStaffIdentity();
+  const {
+    updateMyName,
+    isUpdatingName,
+    requestEmailChange,
+    isRequestingEmailChange,
+    changePasswordChecked,
+    isChangingPasswordChecked,
+  } = useAuth();
+
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ name: "", email: "" });
   const [detailsError, setDetailsError] = useState("");
@@ -49,53 +62,44 @@ export default function MyAccount() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const saving = isUpdatingName || isRequestingEmailChange;
   const draftEmailChanged =
-    draft.email.trim().toLowerCase() !== account.email.toLowerCase();
+    draft.email.trim().toLowerCase() !== staff.email.toLowerCase();
 
   const details = [
-    { label: "Name", value: account.name, icon: UserRound },
-    { label: "Email", value: account.email, icon: Mail, pending: account.pendingEmail },
-    { label: "Role", value: account.role, icon: ShieldCheck, badge: true },
-    { label: "Last login", value: account.lastLogin, icon: CalendarClock },
+    { label: "Name", value: staff.name, icon: UserRound },
+    { label: "Email", value: staff.email, icon: Mail, pending: staff.pendingEmail },
+    { label: "Role", value: staff.role, icon: ShieldCheck, badge: true },
+    { label: "Last login", value: formatLogin(staff.lastLogin), icon: CalendarClock },
   ];
 
   const startEditing = () => {
-    setDraft({ name: account.name, email: account.pendingEmail || account.email });
+    setDraft({ name: staff.name, email: staff.pendingEmail || staff.email });
     setDetailsError("");
     setSuccess("");
     setEditing(true);
   };
 
-  const cancelEditing = () => {
-    setEditing(false);
-    setDetailsError("");
-  };
-
-  const saveDetails = (event) => {
+  const saveDetails = async (event) => {
     event.preventDefault();
     const name = draft.name.trim();
     const email = draft.email.trim();
 
-    if (!name) {
-      setDetailsError("Enter your name.");
-      return;
-    }
-    if (!EMAIL_PATTERN.test(email)) {
-      setDetailsError("Enter a valid email address.");
-      return;
-    }
+    if (!name) return setDetailsError("Enter your name.");
+    if (!EMAIL_PATTERN.test(email)) return setDetailsError("Enter a valid email address.");
 
-    setAccount((current) => ({
-      ...current,
-      name,
-      pendingEmail: draftEmailChanged ? email : "",
-    }));
-    setEditing(false);
-    setSuccess(
-      draftEmailChanged
-        ? "We'll send a confirmation code to the new email. Your email changes once the code is entered. (Preview only, no email was sent.)"
-        : "Account details updated. (Preview only, nothing was saved.)"
-    );
+    try {
+      if (name !== staff.name) await updateMyName(name);
+      if (draftEmailChanged) await requestEmailChange(email);
+      setEditing(false);
+      setSuccess(
+        draftEmailChanged
+          ? `We sent a confirmation link to ${email}. Your email changes once you click it.`
+          : "Account details updated."
+      );
+    } catch {
+      setDetailsError("We couldn't save your details. Please try again.");
+    }
   };
 
   const closeModal = () => {
@@ -106,42 +110,37 @@ export default function MyAccount() {
 
   useEffect(() => {
     if (!modalOpen) return;
-
     const onKeyDown = (event) => {
       if (event.key === "Escape") closeModal();
     };
-
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [modalOpen]);
 
-  const handleSubmit = (event) => {
+  const handlePasswordSubmit = async (event) => {
     event.preventDefault();
     const { current, next, confirm } = form;
 
-    if (!current || !next || !confirm) {
-      setError("Fill in all three password fields.");
-      return;
-    }
-    if (current.length < 8) {
-      setError("Current password must be at least 8 characters.");
-      return;
-    }
-    if (next.length < 8) {
-      setError("New password must be at least 8 characters.");
-      return;
-    }
-    if (next !== confirm) {
-      setError("New passwords do not match.");
-      return;
-    }
-    if (next === current) {
-      setError("New password must be different from your current one.");
-      return;
-    }
+    if (!current || !next || !confirm) return setError("Fill in all three password fields.");
+    if (next.length < 8) return setError("New password must be at least 8 characters.");
+    if (next !== confirm) return setError("New passwords do not match.");
+    if (next === current) return setError("New password must be different from your current one.");
 
-    closeModal();
-    setSuccess("Password changed. (Preview only, nothing was saved.)");
+    try {
+      await changePasswordChecked({
+        email: staff.email,
+        currentPassword: current,
+        newPassword: next,
+      });
+      closeModal();
+      setSuccess("Password changed.");
+    } catch (passwordError) {
+      setError(
+        passwordError.code === "wrong_password"
+          ? "Your current password is incorrect."
+          : "We couldn't change your password. Please try again."
+      );
+    }
   };
 
   return (
@@ -152,10 +151,7 @@ export default function MyAccount() {
       />
 
       {success && (
-        <p
-          role="status"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700"
-        >
+        <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
           {success}
         </p>
       )}
@@ -165,22 +161,14 @@ export default function MyAccount() {
           <div className="flex min-w-0 items-center gap-3">
             <OwnerAvatar className="h-12 w-12 text-sm sm:h-14 sm:w-14" />
             <div className="min-w-0">
-              <h2 className="truncate text-base font-extrabold text-[#19244E] sm:text-lg">
-                {account.name}
-              </h2>
-              <p className="truncate text-xs text-gray-500 sm:text-sm">
-                {account.email}
-              </p>
+              <h2 className="truncate text-base font-extrabold text-[#19244E] sm:text-lg">{staff.name}</h2>
+              <p className="truncate text-xs text-gray-500 sm:text-sm">{staff.email}</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
             {!editing && (
-              <button
-                type="button"
-                onClick={startEditing}
-                className={`inline-flex items-center justify-center gap-2 ${secondaryButtonClass}`}
-              >
+              <button type="button" onClick={startEditing} className={`inline-flex items-center justify-center gap-2 ${secondaryButtonClass}`}>
                 <Pencil size={16} className="hidden sm:block" />
                 Edit Details
               </button>
@@ -202,23 +190,19 @@ export default function MyAccount() {
         {editing ? (
           <form onSubmit={saveDetails} noValidate className="mt-5 space-y-4 sm:mt-6">
             {detailsError && (
-              <p
-                role="alert"
-                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
-              >
+              <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 {detailsError}
               </p>
             )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="account-name" className="text-xs font-bold text-[#19244E]">
-                  Name
-                </label>
+                <label htmlFor="account-name" className="text-xs font-bold text-[#19244E]">Name</label>
                 <input
                   id="account-name"
                   type="text"
                   autoComplete="name"
+                  maxLength={120}
                   value={draft.name}
                   onChange={(event) => {
                     setDraft((current) => ({ ...current, name: event.target.value }));
@@ -227,11 +211,8 @@ export default function MyAccount() {
                   className={inputClass}
                 />
               </div>
-
               <div>
-                <label htmlFor="account-email" className="text-xs font-bold text-[#19244E]">
-                  Email
-                </label>
+                <label htmlFor="account-email" className="text-xs font-bold text-[#19244E]">Email</label>
                 <input
                   id="account-email"
                   type="email"
@@ -249,19 +230,20 @@ export default function MyAccount() {
             {draftEmailChanged && (
               <p className="flex items-start gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-[#19244E]">
                 <MailCheck size={18} className="mt-0.5 hidden shrink-0 text-[#E58422] sm:block" />
-                We'll send a confirmation code to the new email.
+                We'll send a confirmation link to the new email.
               </p>
             )}
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={cancelEditing} className={secondaryButtonClass}>
+              <button type="button" onClick={() => setEditing(false)} className={secondaryButtonClass}>
                 Cancel
               </button>
               <button
                 type="submit"
-                className="min-h-11 rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d47414]"
+                disabled={saving}
+                className="flex min-h-11 items-center justify-center rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#d47414] disabled:cursor-wait"
               >
-                Save
+                {saving ? <BrewingLoader tone="light" size={24} label="Saving..." /> : "Save"}
               </button>
             </div>
           </form>
@@ -275,13 +257,7 @@ export default function MyAccount() {
                 </dt>
                 <dd className="mt-1 break-words text-sm font-bold text-[#19244E]">
                   {badge ? (
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        value === "Owner"
-                          ? "bg-orange-50 text-[#E58422]"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${value === "Owner" ? "bg-orange-50 text-[#E58422]" : "bg-gray-100 text-gray-600"}`}>
                       {value}
                     </span>
                   ) : (
@@ -289,7 +265,7 @@ export default function MyAccount() {
                   )}
                   {pending && (
                     <span className="mt-1 block text-[11px] font-semibold text-[#E58422]">
-                      Pending: {pending} (waiting for code)
+                      Pending: {pending} (check that inbox)
                     </span>
                   )}
                 </dd>
@@ -300,28 +276,17 @@ export default function MyAccount() {
       </DataCard>
 
       {modalOpen && (
-        <ModalWrapper
-          title="Change password"
-          description="Your new password needs at least 8 characters."
-        >
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <ModalWrapper title="Change password" description="Your new password needs at least 8 characters.">
+          <form onSubmit={handlePasswordSubmit} noValidate className="space-y-4">
             {error && (
-              <p
-                role="alert"
-                className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
-              >
+              <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
                 {error}
               </p>
             )}
 
             {passwordFields.map(({ name, label, autoComplete }) => (
               <div key={name}>
-                <label
-                  htmlFor={`password-${name}`}
-                  className="text-xs font-bold text-[#19244E]"
-                >
-                  {label}
-                </label>
+                <label htmlFor={`password-${name}`} className="text-xs font-bold text-[#19244E]">{label}</label>
                 <input
                   id={`password-${name}`}
                   type="password"
@@ -343,9 +308,10 @@ export default function MyAccount() {
               </button>
               <button
                 type="submit"
-                className="min-h-11 rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#cf7419]"
+                disabled={isChangingPasswordChecked}
+                className="flex min-h-11 items-center justify-center rounded-xl bg-[#E58422] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#cf7419] disabled:cursor-wait"
               >
-                Save Password
+                {isChangingPasswordChecked ? <BrewingLoader tone="light" size={24} label="Saving..." /> : "Save Password"}
               </button>
             </div>
           </form>

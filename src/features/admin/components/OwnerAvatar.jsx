@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { OWNER } from "./brandAssets";
+import { useStaffIdentity } from "./useStaffIdentity";
 
-// Owner photo, or the "JC" initials if the photo cannot load.
+// Profile photo, or initials if there is no photo or it can't load.
 export default function OwnerAvatar({ className = "h-9 w-9 text-xs" }) {
+  const { photo, initials } = useStaffIdentity();
   const [photoFailed, setPhotoFailed] = useState(false);
 
-  if (OWNER.photo && !photoFailed) {
+  if (photo && !photoFailed) {
     return (
       <img
-        src={OWNER.photo}
+        src={photo}
         alt=""
         onError={() => setPhotoFailed(true)}
         className={`${className} shrink-0 rounded-full object-cover object-[50%_30%]`}
@@ -18,7 +19,7 @@ export default function OwnerAvatar({ className = "h-9 w-9 text-xs" }) {
 
   return (
     <span className={`${className} flex shrink-0 items-center justify-center rounded-full bg-[#19244E] font-bold text-white`}>
-      {OWNER.initials}
+      {initials}
     </span>
   );
 }
