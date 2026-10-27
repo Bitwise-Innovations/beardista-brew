@@ -10,9 +10,11 @@ const corsHeaders = {
 type RegisterRequest = {
   action: "register";
   eventId: number;
-  email: string;
-  fullName: string;
-  phone?: string | null;
+  participant_type_id: string;
+  answers: Array<{
+    question_id: string;
+    answer: string;
+  }>;
 };
 
 type VerifyRequest = {
@@ -26,6 +28,13 @@ type RegistrationResult = {
   eventId: number;
   userEmail: string;
   fullName: string;
+};
+
+type CreatedRegistration = {
+  id: string;
+  user_email: string;
+  full_name: string;
+  status: "registered" | "waitlisted";
 };
 
 type VerificationResult = RegistrationResult & {
@@ -100,58 +109,85 @@ async function sendBrevoEmail(
   }
 }
 
-function isValidEmail(email: unknown): email is string {
+function isUuid(value: unknown): value is string {
   return (
-    typeof email === "string" &&
-    email.length <= 254 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
   );
 }
 
-async function register(request: RegisterRequest, supabase: ReturnType<typeof createClient>) {
+async function getSupabaseErrorMessage(error: {
+  message: string;
+  context: unknown;
+}) {
+  if (error.context instanceof Response) {
+    try {
+      const details = await error.context.json();
+      if (details && typeof details.message === "string") {
+        return details.message;
+      }
+    } catch (contextError) {
+      console.error("Could not extract Supabase error details", contextError);
+    }
+  }
+  return error.message;
+}
+
+async function register(
+  request: RegisterRequest,
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+) {
   if (
     !Number.isSafeInteger(request.eventId) ||
     request.eventId <= 0 ||
-    !isValidEmail(request.email) ||
-    typeof request.fullName !== "string" ||
-    request.fullName.trim().length < 1 ||
-    request.fullName.length > 200 ||
-    (request.phone != null &&
-      (typeof request.phone !== "string" || request.phone.length > 40))
+    !isUuid(request.participant_type_id) ||
+    !Array.isArray(request.answers) ||
+    request.answers.some(
+      (answer) =>
+        !answer ||
+        !isUuid(answer.question_id) ||
+        typeof answer.answer !== "string",
+    )
   ) {
-    return jsonResponse({ error: "Valid event, email, name, and phone are required." }, 400);
+    return jsonResponse(
+      { error: "A valid event, participant type, and answers are required." },
+      400,
+    );
   }
 
   const code = createVerificationCode();
   const { data, error } = await supabase.rpc("create_event_registration", {
     p_event_id: request.eventId,
-    p_user_email: request.email.trim(),
-    p_full_name: request.fullName.trim(),
-    p_phone: request.phone?.trim() || null,
-    p_verification_code: code,
+    p_user_id: userId,
+    p_participant_type_id: request.participant_type_id,
+    p_answers: request.answers,
   });
 
   if (error) {
+    const errorMessage = await getSupabaseErrorMessage(error);
     if (error.code === "55000") {
-      return jsonResponse({ error: error.message }, 429);
+      return jsonResponse({ error: errorMessage }, 429);
     }
     if (error.code === "23505") {
-      return jsonResponse({ error: "This email is already registered for the event." }, 409);
+      return jsonResponse({ error: errorMessage }, 409);
     }
     if (error.code === "P0002") {
-      return jsonResponse({ error: "This event is not open for registration." }, 404);
+      return jsonResponse({ error: errorMessage }, 404);
     }
     console.error("Could not create event registration", error);
-    return jsonResponse({ error: "Could not create the event registration." }, 500);
+    return jsonResponse({ error: errorMessage }, 500);
   }
 
-  const registration = data as RegistrationResult;
+  const registration = data as CreatedRegistration;
   try {
     await sendBrevoEmail(
-      registration.userEmail,
-      registration.fullName,
+      registration.user_email,
+      registration.full_name,
       "Verify your Beardista Brew event registration",
-      `<p>Hello ${escapeHtml(registration.fullName)},</p><p>Your verification code is <strong>${code}</strong>.</p><p>Enter this code to complete your event registration.</p>`,
+      `<p>Hello ${escapeHtml(registration.full_name)},</p><p>Your verification code is <strong>${code}</strong>.</p><p>Enter this code to complete your event registration.</p>`,
     );
   } catch (error) {
     console.error("Could not send event verification email", error);
@@ -166,7 +202,7 @@ async function register(request: RegisterRequest, supabase: ReturnType<typeof cr
 
   return jsonResponse({
     registrationId: registration.id,
-    status: "pending",
+    status: registration.status,
     message: "Verification code sent.",
   });
 }
@@ -189,14 +225,15 @@ async function verify(request: VerifyRequest, supabase: ReturnType<typeof create
   });
 
   if (error) {
+    const errorMessage = await getSupabaseErrorMessage(error);
     if (error.code === "P0002") {
-      return jsonResponse({ error: "Registration not found." }, 404);
+      return jsonResponse({ error: errorMessage }, 404);
     }
     if (error.code === "22023") {
-      return jsonResponse({ error: error.message }, 400);
+      return jsonResponse({ error: errorMessage }, 400);
     }
     console.error("Could not verify event registration", error);
-    return jsonResponse({ error: "Could not verify the event registration." }, 500);
+    return jsonResponse({ error: errorMessage }, 500);
   }
 
   const registration = data as VerificationResult;
@@ -255,7 +292,19 @@ Deno.serve(async (request: Request) => {
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    if (body.action === "register") return await register(body, supabase);
+    if (body.action === "register") {
+      const token = request.headers.get("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+      if (!token) {
+        return jsonResponse({ error: "Authentication is required." }, 401);
+      }
+
+      const { data, error } = await supabase.auth.getUser(token);
+      if (error || !data.user) {
+        return jsonResponse({ error: "A valid authenticated user is required." }, 401);
+      }
+
+      return await register(body, supabase, data.user.id);
+    }
     if (body.action === "verify") return await verify(body, supabase);
     return jsonResponse({ error: "Unsupported action." }, 400);
   } catch (error) {
