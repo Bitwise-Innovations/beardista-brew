@@ -10,9 +10,14 @@ import {
 const STAFF_KEY = ["staff", "list"];
 
 export function useStaffList() {
-  return useQuery({ queryKey: STAFF_KEY, queryFn: listStaff });
+  return useQuery({
+    queryKey: STAFF_KEY,
+    queryFn: listStaff,
+    // Don't retry "log in again" or "owner only" errors; they won't fix themselves.
+    retry: (failureCount, error) =>
+      !/log in again|only the owner/i.test(error?.message ?? "") && failureCount < 2,
+  });
 }
-
 function useStaffMutation(mutationFn) {
   const queryClient = useQueryClient();
   return useMutation({
