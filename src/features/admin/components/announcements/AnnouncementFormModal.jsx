@@ -48,7 +48,8 @@ export default function AnnouncementFormModal({ announcement, events, menuItems,
   };
 
   const pickImage = (file) => {
-    if (file?.type.startsWith("image/")) update("image_url", URL.createObjectURL(file));
+    if (!file?.type.startsWith("image/")) return;
+    setForm((current) => ({ ...current, image_url: URL.createObjectURL(file), imageFile: file }));
   };
 
   const submit = (event) => {
@@ -224,7 +225,7 @@ export default function AnnouncementFormModal({ announcement, events, menuItems,
               {form.image_url && (
                 <button
                   type="button"
-                  onClick={() => update("image_url", "")}
+                 onClick={() => setForm((current) => ({ ...current, image_url: "", imageFile: null }))}
                   className="min-h-11 self-start rounded-xl border border-gray-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50"
                 >
                   Remove image
