@@ -74,3 +74,26 @@ export const reviewsData = [
   { id: 'rev-2', quote: 'Sample review. Replace with a real customer quote.', author: 'Sample Customer' },
   { id: 'rev-3', quote: 'Sample review. Replace with a real customer quote.', author: 'Sample Customer' },
 ];
+
+// StayConnected: { ssid, password }
+// Note: this ends up in the browser. Only put the public cafe WiFi here.
+export const wifiData = {
+  ssid: 'Sample-WiFi-Name',
+  password: 'sample-password',
+};
+
+// FAQSection: array of { id, question, answer }
+// Only the first answer comes from the Figma design; replace the TODO answers
+// with your real cafe policies.
+export const faqData = [
+  {
+    id: 'faq-1',
+    question: 'Is this a good place to work or study?',
+    answer:
+      'Yes! We provide high-speed complimentary Wi-Fi, numerous power outlets, and comfortable seating specifically designed for work and study sessions.',
+  },
+  { id: 'faq-2', question: 'Are pets allowed?', answer: 'TODO: replace with your pet policy.' },
+  { id: 'faq-3', question: 'Can we bring outside food or drinks?', answer: 'TODO: replace with your outside food and drinks policy.' },
+  { id: 'faq-4', question: 'What payment methods do you accept?', answer: 'TODO: replace with your accepted payment methods.' },
+];
+];

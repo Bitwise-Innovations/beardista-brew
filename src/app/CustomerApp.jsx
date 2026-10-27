@@ -16,6 +16,7 @@ import { WhyChooseUs } from '../features/landing/WhyChooseUs.jsx';
 import { BeardistaBlend } from '../features/landing/BeardistaBlend.jsx';
 import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
+import { FAQSection } from '../features/landing/FAQSection.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
 import {
   customerFavoritesData,
@@ -23,6 +24,8 @@ import {
   whyChooseData,
   blendDetailsData,
   reviewsData,
+  wifiData,
+  faqData,
 } from '../data/customerData.js';
 
 // --- LIVE DATA (Supabase) ---
@@ -142,7 +145,8 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             reviews={reviewsData}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
-          <StayConnected />
+          <StayConnected wifi={wifiData} />
+          <FAQSection faqs={faqData} />
           <Footer onNavigate={handleNavigate} />
         </>
       )}
