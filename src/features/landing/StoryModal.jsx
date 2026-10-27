@@ -18,7 +18,7 @@ export const StoryModal = ({ isOpen, onClose }) => {
     >
       {/* Modal Dialog Card */}
       <div
-        className="bg-[#FFF3E7] w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col max-h-[90vh]"
+        className="bg-[#FFF3E7] w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl border border-black/10 flex flex-col max-h-[90dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Imagery */}

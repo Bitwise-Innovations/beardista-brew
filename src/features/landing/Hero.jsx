@@ -3,74 +3,65 @@ import heroImage from '@/assets/beardista_home.jpg';
 
 /**
  * Hero component displaying the main brand headline and visual anchor.
+ * Mobile: text on the left, photo on the right (side by side, like the phone design).
+ * Tablet / laptop / desktop: the same two columns, scaled up with a bigger headline,
+ * a larger photo and more breathing room.
  * @param {Object} props - Component properties
- * @param {Function} props.onExploreMenu - Handler to scroll to the customer favorites menu
+ * @param {Function} props.onExploreMenu - Handler to open the menu
  */
-
 export const Hero = ({ onExploreMenu }) => {
   return (
-    // Outer section container with warm cream backdrop and vertical breathing space
-    <header className="relative min-h-170 lg:min-h-190 flex items-center bg-[#FFF3E7] px-6 md:px-16 py-12 md:py-20 overflow-hidden">
-      {/* 12-Column Layout Grid */}
-      <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative z-10 items-center">
-        
-        {/* Left Column (lg:col-span-6): Typography and Call-To-Action */}
-        <div className="lg:col-span-6 flex flex-col justify-center space-y-6 md:space-y-8 z-20 items-start">
-          
-          {/* Main Display Title with high contrast colors */}
-          <h1 className="font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#19244E] leading-[1.08] tracking-tight">
-            BREW ME TO <br />
-            THE <br />
+    <header className="relative flex items-center bg-[#FFF3E7] px-5 py-8 sm:px-8 md:px-16 md:py-16 md:min-h-170 lg:min-h-190 overflow-hidden">
+      {/* Always 2 columns: text | photo */}
+      <div className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-2 items-center gap-4 sm:gap-8 lg:gap-16">
+
+        {/* Left column: headline, subtitle, button */}
+        <div className="z-20 flex flex-col items-start justify-center space-y-4 sm:space-y-6 md:space-y-8">
+          <h1 className="text-2xl font-extrabold leading-[1.15] tracking-[0.1em] text-[#19244E] min-[400px]:text-3xl sm:text-5xl md:text-6xl lg:text-7xl lg:leading-[1.08] lg:tracking-tight">
+            BREW ME TO <br className="hidden lg:block" />
+            THE <br className="hidden lg:block" />
             <span className="text-[#fe9836]">HORIZON.</span>
           </h1>
 
-          {/* Subtitle / Brand Mission Statement */}
-          <p className="text-base sm:text-lg md:text-xl text-[#1c1b1b] max-w-lg leading-relaxed font-normal">
+          <p className="max-w-lg text-[11px] leading-relaxed text-[#1c1b1b] min-[400px]:text-xs sm:text-lg md:text-xl">
             Good coffee, good food, and a place worth staying awhile.
           </p>
 
-          {/* Primary Action Button navigating down to the menu */}
-          <div>
-            <button
-              onClick={onExploreMenu}
-              className="inline-flex items-center px-8 py-4 bg-[#fe9836] hover:bg-[#e58422] text-white font-semibold text-sm uppercase tracking-wider rounded-sm transition-all duration-200 group shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
+          <button
+            onClick={onExploreMenu}
+            className="group inline-flex cursor-pointer items-center rounded-sm bg-[#fe9836] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white shadow-md transition-all duration-200 hover:bg-[#e58422] hover:shadow-lg active:scale-95 sm:px-8 sm:py-4 sm:text-sm"
+          >
+            <span className="sm:hidden">EXPLORE MENU</span>
+            <span className="hidden sm:inline">EXPLORE THE MENU</span>
+            <svg
+              className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-1.5 sm:h-4 sm:w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              aria-hidden="true"
             >
-              <span>EXPLORE THE MENU</span>
-              {/* Right Arrow glyph with hover translation animation */}
-              <svg
-                className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
-          </div>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </button>
         </div>
 
-        {/* Right Column (lg:col-span-6): Editorial Photography with Asymmetric Rounded Edges */}
-        <div className="lg:col-span-6 relative mt-8 lg:mt-0 flex justify-center">
-          
-          {/* Outer Photo Frame with rounded top-right and bottom-left organic curvature */}
-          <div className="relative w-full max-w-md lg:max-w-none aspect-4/5 overflow-hidden rounded-tr-[80px] md:rounded-tr-[100px] rounded-bl-[80px] md:rounded-bl-[100px] shadow-2xl border-4 border-white/60 group">
-            {/* High-resolution beverage photograph representing Beardista Brew's signature iced cup */}
+        {/* Right column: photo. Simple rounded on phones, organic curves on larger screens */}
+        <div className="relative flex justify-center">
+          <div className="group relative aspect-[3/4] w-full overflow-hidden rounded-2xl border-2 border-white/60 shadow-xl md:aspect-[4/5] md:rounded-none md:rounded-tr-[100px] md:rounded-bl-[100px] md:border-4 md:shadow-2xl">
             <img
-  src={heroImage}
-  alt="Beardista Brew signature iced coffee beverage in sunlight"
-  className="absolute inset-0 w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700 ease-out"
-  loading="eager"
-/>
-            {/* Subtle aesthetic gradient vignette */}
-            <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
+              src={heroImage}
+              alt="Beardista Brew signature iced coffee beverage in sunlight"
+              className="absolute inset-0 h-full w-full scale-105 object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+              loading="eager"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
           </div>
 
-          {/* Decorative Warm Shapes matching the reference design layout */}
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-[#fe9836] rounded-2xl mix-blend-multiply opacity-50 blur-lg pointer-events-none" />
-          <div className="absolute -top-6 -right-6 w-36 h-36 bg-[#ffdcc3] rounded-3xl mix-blend-multiply opacity-60 pointer-events-none" />
+          {/* Decorative warm shapes: tablet and up only */}
+          <div className="pointer-events-none absolute -bottom-8 -left-8 hidden h-32 w-32 rounded-2xl bg-[#fe9836] opacity-50 mix-blend-multiply blur-lg md:block" />
+          <div className="pointer-events-none absolute -right-6 -top-6 hidden h-36 w-36 rounded-3xl bg-[#ffdcc3] opacity-60 mix-blend-multiply md:block" />
         </div>
-
       </div>
     </header>
   );

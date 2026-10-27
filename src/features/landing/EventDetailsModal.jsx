@@ -797,7 +797,7 @@ export const EventDetailsModal = ({ isOpen, onClose, eventData }) => {
           onClick={() => setShowTermsModal(false)}
         >
           <div
-            className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-black/10"
+            className="bg-white w-full max-w-2xl max-h-[85dvh] rounded-3xl overflow-hidden shadow-2xl flex flex-col border border-black/10"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

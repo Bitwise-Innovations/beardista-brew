@@ -1,0 +1,34 @@
+/* Admin fonts. Both families are loaded in admin-preview.html. */
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Anybody", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Rising steam for the coffee cup (BrewingLoader and the animation fallback). */
+@keyframes admin-steam {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+
+.admin-steam {
+  animation: admin-steam 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-steam {
+    animation: none;
+    opacity: 0.7;
+  }
+}
