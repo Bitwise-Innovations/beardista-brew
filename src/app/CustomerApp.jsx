@@ -23,7 +23,6 @@ import {
   whyChooseData,
   blendDetailsData,
   reviewsData,
-  wifiData,
 } from '../data/customerData.js';
 
 // --- LIVE DATA (Supabase) ---
@@ -143,7 +142,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             reviews={reviewsData}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
-          <StayConnected wifi={wifiData} />
+          <StayConnected />
           <Footer onNavigate={handleNavigate} />
         </>
       )}
