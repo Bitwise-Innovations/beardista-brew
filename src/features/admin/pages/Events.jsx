@@ -1,28 +1,36 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, Plus, X } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import ModalWrapper from "../components/ModalWrapper";
+import EmptyState from "../components/EmptyState";
+import BrewingLoader from "../components/BrewingLoader";
 import { cancelButtonClass } from "../components/formStyles";
 import EventsTab from "../components/events/EventsTab";
 import EventViewModal from "../components/events/EventViewModal";
 import ParticipantsTab from "../components/events/ParticipantsTab";
 import FormsTab from "../components/events/FormsTab";
 import EventFormModal from "../components/events/EventFormModal";
+import { REGISTRATION_STATUS, eventPhase, eventPill } from "../components/events/eventUtils";
 import {
-  REGISTRATION_STATUS,
-  eventPhase,
-  eventPill,
-  nextId,
-  nowISO,
-} from "../components/events/eventUtils";
+  useAdminEventsData,
+  useCreateAdminEvent,
+  useUpdateAdminEvent,
+  useDeleteAdminEvent,
+  useDuplicateAdminEvent,
+  useSaveEventForms,
+  useUpdateRegistrationStatus,
+} from "../../../backend/hooks/useEvents";
+import { useUploadSiteImage } from "../../../backend/hooks/useContent";
 import {
-  events as sampleEvents,
-  participant_types as sampleParticipantTypes,
-  form_questions as sampleQuestions,
-  registrations as sampleRegistrations,
-  registration_answers as sampleAnswers,
-} from "../data/eventsMockData";
+  toAdminAnswer,
+  toAdminEvent,
+  toAdminQuestion,
+  toAdminRegistration,
+  toAdminType,
+  toEventPayload,
+} from "../../../backend/mappers/adminEventMapper";
+import { savedUrl } from "../../../backend/mappers/adminMenuMapper";
 
 const TABS = [
   { id: "events", label: "Events" },
@@ -30,17 +38,92 @@ const TABS = [
   { id: "forms", label: "Registration Forms" },
 ];
 
+const sameRows = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
 export default function Events() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [events, setEvents] = useState(sampleEvents);
-  const [participantTypes, setParticipantTypes] = useState(sampleParticipantTypes);
-  const [questions, setQuestions] = useState(sampleQuestions);
-  const [registrations, setRegistrations] = useState(sampleRegistrations);
-  const [answers, setAnswers] = useState(sampleAnswers);
+  const dataQuery = useAdminEventsData();
+  const createEvent = useCreateAdminEvent();
+  const updateEvent = useUpdateAdminEvent();
+  const deleteEvent = useDeleteAdminEvent();
+  const duplicateEvent = useDuplicateAdminEvent();
+  const saveForms = useSaveEventForms();
+  const updateRegistration = useUpdateRegistrationStatus();
+  const uploadImage = useUploadSiteImage();
+
   const [eventModal, setEventModal] = useState(null);
   const [viewId, setViewId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const server = useMemo(() => {
+    if (!dataQuery.data) return null;
+    const { events, types, questions, registrations, answers } = dataQuery.data;
+    return {
+      events: events.map(toAdminEvent),
+      types: types.map(toAdminType),
+      questions: questions.map(toAdminQuestion),
+      registrations: registrations.map(toAdminRegistration),
+      answers: answers.map(toAdminAnswer),
+    };
+  }, [dataQuery.data]);
+
+  // Registration forms are edited as a draft and saved with the Save Form button.
+  const [draftTypes, setDraftTypes] = useState([]);
+  const [draftQuestions, setDraftQuestions] = useState([]);
+  const [formsTouched, setFormsTouched] = useState(false);
+
+  useEffect(() => {
+    if (!server || formsTouched) return;
+    setDraftTypes(server.types);
+    setDraftQuestions(server.questions);
+  }, [server, formsTouched]);
+
+  const editTypes = (update) => {
+    setFormsTouched(true);
+    setDraftTypes(update);
+  };
+  const editQuestions = (update) => {
+    setFormsTouched(true);
+    setDraftQuestions(update);
+  };
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 4000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  if (dataQuery.isPending) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <BrewingLoader label="Loading events..." />
+      </div>
+    );
+  }
+
+  if (dataQuery.isError || !server) {
+    return (
+      <EmptyState
+        title="We couldn't load the events."
+        message="Check your connection and try again."
+        action={
+          <button
+            type="button"
+            onClick={() => dataQuery.refetch()}
+            className="min-h-11 rounded-xl bg-[#19244E] px-4 text-xs font-bold text-white hover:bg-[#253570]"
+          >
+            Try again
+          </button>
+        }
+      />
+    );
+  }
+
+  const { events, registrations, answers } = server;
+  const participantTypes = formsTouched ? draftTypes : server.types;
+  const questions = formsTouched ? draftQuestions : server.questions;
 
   // The open tab and event live in the link (?tab=participants&event=1) so notifications can open them.
   const requestedTab = searchParams.get("tab");
@@ -54,99 +137,136 @@ export default function Events() {
 
   const openTab = (nextTab) =>
     setSearchParams(linkedEvent ? { tab: nextTab, event: String(linkedEvent.id) } : { tab: nextTab });
-
   const goTo = (nextTab, eventId) => setSearchParams({ tab: nextTab, event: String(eventId) });
-
   const setLinkedEvent = (id) =>
     setSearchParams(id === "all" ? { tab } : { tab, event: String(id) }, { replace: true });
 
-  useEffect(() => {
-    if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 3500);
-    return () => clearTimeout(timer);
-  }, [notice]);
-
-  const saveEvent = (values) => {
+  // ----- Events -----
+  const saveEvent = async (values) => {
     const editing = eventModal.event;
+    setSaving(true);
+    try {
+      const coverUrl = values.coverFile
+        ? await uploadImage.mutateAsync({ file: values.coverFile, folder: "events" })
+        : savedUrl(values.cover_image_url);
+      const payload = toEventPayload(values, coverUrl);
 
-    if (editing) {
-      setEvents((all) => all.map((event) => (event.id === editing.id ? { ...event, ...values } : event)));
-      setNotice(`${values.title} was updated.`);
-    } else {
-      setEvents((all) => [...all, { ...values, id: nextId(all), status: "draft" }]);
-      setNotice(`${values.title} was created as a draft. Set up its registration form next.`);
+      if (editing) {
+        await updateEvent.mutateAsync({ id: editing.id, ...payload });
+        setNotice(`${values.title} was updated.`);
+      } else {
+        await createEvent.mutateAsync(payload);
+        setNotice(`${values.title} was created as a draft. Set up its registration form next.`);
+      }
+      setEventModal(null);
+    } catch {
+      setNotice(`We couldn't save ${values.title}. Please try again.`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleRegistration = async (target) => {
+    const status = target.status === "open" ? "closed" : "open";
+    try {
+      await updateEvent.mutateAsync({ id: target.id, status });
+      setNotice(
+        status === "open"
+          ? `Registration is now open for ${target.title}.`
+          : `Registration for ${target.title} is closed.`
+      );
+    } catch {
+      setNotice(`We couldn't change registration for ${target.title}. Please try again.`);
+    }
+  };
+
+  const duplicate = async (source) => {
+    setSaving(true);
+    try {
+      await duplicateEvent.mutateAsync(source.id);
+      setNotice(`${source.title} was duplicated as a draft.`);
+    } catch {
+      setNotice(`We couldn't duplicate ${source.title}. Please try again.`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    const target = deleteTarget;
+    try {
+      await deleteEvent.mutateAsync(target.id);
+      if (linkedEvent?.id === target.id) setLinkedEvent("all");
+      setDeleteTarget(null);
+      setNotice(`${target.title} was deleted.`);
+    } catch {
+      setNotice(`We couldn't delete ${target.title}. Please try again.`);
+    }
+  };
+
+  // ----- Participants -----
+  const changeRegistrationStatus = async (registrationId, status) => {
+    const person = registrations.find((entry) => entry.id === registrationId);
+    try {
+      await updateRegistration.mutateAsync({ id: registrationId, status });
+      setNotice(`${person?.name ?? "Participant"} is now ${REGISTRATION_STATUS[status].label.toLowerCase()}.`);
+    } catch {
+      setNotice("We couldn't change the status. Please try again.");
+    }
+  };
+
+  const resendCode = () =>
+    setNotice("Resending codes will work once the email function is updated (Step 27).");
+
+  // ----- Registration forms -----
+  // Collects only the events whose types or questions changed.
+  const changedForms = events
+    .map((event) => {
+      const localTypes = draftTypes.filter((type) => type.event_id === event.id);
+      const serverTypes = server.types.filter((type) => type.event_id === event.id);
+      const localTypeIds = localTypes.map((type) => type.id);
+      const serverTypeIds = serverTypes.map((type) => type.id);
+      const localQuestions = draftQuestions.filter((q) => localTypeIds.includes(q.participant_type_id));
+      const serverQuestions = server.questions.filter((q) => serverTypeIds.includes(q.participant_type_id));
+
+      if (sameRows(localTypes, serverTypes) && sameRows(localQuestions, serverQuestions)) return null;
+      return {
+        eventId: event.id,
+        types: localTypes,
+        questions: localQuestions,
+        existingTypeIds: serverTypeIds,
+        existingQuestionIds: serverQuestions.map((q) => q.id),
+      };
+    })
+    .filter(Boolean);
+
+  const formsDirty = formsTouched && changedForms.length > 0;
+
+  const saveFormDrafts = async () => {
+    const invalidType = draftTypes.find(
+      (type) => type.opens_at && type.closes_at && type.closes_at < type.opens_at
+    );
+    if (invalidType) {
+      setNotice(`${invalidType.name}: the closing date is before the opening date.`);
+      return;
     }
 
-    setEventModal(null);
+    setSaving(true);
+    try {
+      for (const form of changedForms) await saveForms.mutateAsync(form);
+      setFormsTouched(false);
+      setNotice("Registration forms saved.");
+    } catch {
+      setNotice("We couldn't save the forms. A type that already has registrations can't be removed.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const toggleRegistration = (target) => {
-    const status = target.status === "open" ? "closed" : "open";
-    setEvents((all) => all.map((event) => (event.id === target.id ? { ...event, status } : event)));
-    setNotice(
-      status === "open"
-        ? `Registration is now open for ${target.title}.`
-        : `Registration for ${target.title} is closed.`
-    );
+  const discardFormDrafts = () => {
+    setFormsTouched(false);
+    setNotice("Unsaved form changes were discarded.");
   };
-
-  // Copies the event with its participant types and form questions (no registrations) as a draft.
-  const duplicateEvent = (source) => {
-    const eventId = nextId(events);
-    let typeId = nextId(participantTypes);
-    let questionId = nextId(questions);
-    const typeIds = new Map();
-
-    const copiedTypes = participantTypes
-      .filter((type) => type.event_id === source.id)
-      .map((type) => {
-        typeIds.set(type.id, typeId);
-        return { ...type, id: typeId++, event_id: eventId };
-      });
-    const copiedQuestions = questions
-      .filter((question) => typeIds.has(question.participant_type_id))
-      .map((question) => ({
-        ...question,
-        id: questionId++,
-        participant_type_id: typeIds.get(question.participant_type_id),
-        options: [...question.options],
-      }));
-
-    setEvents((all) => [...all, { ...source, id: eventId, title: `${source.title} (copy)`, status: "draft" }]);
-    setParticipantTypes((all) => [...all, ...copiedTypes]);
-    setQuestions((all) => [...all, ...copiedQuestions]);
-    setNotice(`${source.title} was duplicated as a draft.`);
-  };
-
-  // Removes the event and everything linked to it in the sample data.
-  const deleteEvent = (target) => {
-    const typeIds = participantTypes.filter((type) => type.event_id === target.id).map((type) => type.id);
-    const registrationIds = registrations.filter((entry) => entry.event_id === target.id).map((entry) => entry.id);
-
-    setEvents((all) => all.filter((event) => event.id !== target.id));
-    setParticipantTypes((all) => all.filter((type) => type.event_id !== target.id));
-    setQuestions((all) => all.filter((question) => !typeIds.includes(question.participant_type_id)));
-    setRegistrations((all) => all.filter((entry) => entry.event_id !== target.id));
-    setAnswers((all) => all.filter((answer) => !registrationIds.includes(answer.registration_id)));
-    if (linkedEvent?.id === target.id) setLinkedEvent("all");
-    setDeleteTarget(null);
-    setNotice(`${target.title} was deleted.`);
-  };
-
-  const changeRegistrationStatus = (registrationId, status) => {
-    const person = registrations.find((entry) => entry.id === registrationId);
-    setRegistrations((all) =>
-      all.map((entry) => (entry.id === registrationId ? { ...entry, status } : entry))
-    );
-    setNotice(`${person?.name ?? "Participant"} is now ${REGISTRATION_STATUS[status].label.toLowerCase()}.`);
-  };
-
-  const resendCode = (registrationId) =>
-    setRegistrations((all) =>
-      all.map((entry) =>
-        entry.id === registrationId ? { ...entry, verification_sent_at: nowISO() } : entry
-      )
-    );
 
   const deleteCount = deleteTarget
     ? registrations.filter((entry) => entry.event_id === deleteTarget.id).length
@@ -164,6 +284,12 @@ export default function Events() {
           : "space-y-6"
       }
     >
+      {saving && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-white/60">
+          <BrewingLoader label="Saving..." />
+        </div>
+      )}
+
       <PageHeader
         title="Events & Throwdown Manager"
         description="Create events, build their registration forms, and manage who signed up."
@@ -194,12 +320,11 @@ export default function Events() {
               aria-selected={tab === entry.id}
               onClick={() => openTab(entry.id)}
               className={`min-h-11 rounded-xl px-2 text-xs font-bold transition sm:px-5 sm:text-sm lg:min-h-9 ${
-                tab === entry.id
-                  ? "bg-[#FFF3E7] text-[#B96916]"
-                  : "text-gray-500 hover:text-[#19244E]"
+                tab === entry.id ? "bg-[#FFF3E7] text-[#B96916]" : "text-gray-500 hover:text-[#19244E]"
               }`}
             >
               {entry.label}
+              {entry.id === "forms" && formsDirty && <span className="ml-1 text-[#E58422]">•</span>}
             </button>
           ))}
         </div>
@@ -221,7 +346,7 @@ export default function Events() {
           registrations={registrations}
           onView={(event) => setViewId(event.id)}
           onEdit={(event) => setEventModal({ event })}
-          onDuplicate={duplicateEvent}
+          onDuplicate={duplicate}
           onDelete={setDeleteTarget}
         />
       )}
@@ -241,17 +366,37 @@ export default function Events() {
       )}
 
       {tab === "forms" && (
-        <FormsTab
-          events={events}
-          participantTypes={participantTypes}
-          questions={questions}
-          registrations={registrations}
-          selectedEvent={formsEvent}
-          onSelectEvent={setLinkedEvent}
-          setParticipantTypes={setParticipantTypes}
-          setQuestions={setQuestions}
-          notify={setNotice}
-        />
+        <>
+          {formsDirty && (
+            <div className="sticky top-0 z-20 flex flex-col gap-3 rounded-2xl border border-orange-200 bg-[#FFF3E7] p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-4">
+              <p className="text-sm font-bold text-[#19244E]">You have unsaved form changes.</p>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <button type="button" onClick={discardFormDrafts} className={cancelButtonClass}>
+                  Discard
+                </button>
+                <button
+                  type="button"
+                  onClick={saveFormDrafts}
+                  className="min-h-11 rounded-xl bg-[#E58422] px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#d47414]"
+                >
+                  Save Form
+                </button>
+              </div>
+            </div>
+          )}
+
+          <FormsTab
+            events={events}
+            participantTypes={participantTypes}
+            questions={questions}
+            registrations={registrations}
+            selectedEvent={formsEvent}
+            onSelectEvent={setLinkedEvent}
+            setParticipantTypes={editTypes}
+            setQuestions={editQuestions}
+            notify={setNotice}
+          />
+        </>
       )}
 
       {viewEvent && (
@@ -278,19 +423,15 @@ export default function Events() {
       )}
 
       {eventModal && (
-        <EventFormModal
-          event={eventModal.event}
-          onCancel={() => setEventModal(null)}
-          onSave={saveEvent}
-        />
+        <EventFormModal event={eventModal.event} onCancel={() => setEventModal(null)} onSave={saveEvent} />
       )}
 
       {deleteTarget && (
         <ModalWrapper
           title="Delete this event?"
-          description={`${deleteTarget.title} will be removed${
-            deleteCount ? ` together with its ${deleteCount} registration${deleteCount === 1 ? "" : "s"}` : ""
-          }. This only changes the preview.`}
+          description={`${deleteTarget.title} will be permanently removed${
+            deleteCount ? ` together with its ${deleteCount} registration${deleteCount === 1 ? "" : "s"} and their answers` : ""
+          }.`}
           onClose={() => setDeleteTarget(null)}
           sheetOnPhone
           dismissible
@@ -301,10 +442,11 @@ export default function Events() {
             </button>
             <button
               type="button"
-              onClick={() => deleteEvent(deleteTarget)}
-              className="min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-rose-700"
+              onClick={confirmDelete}
+              disabled={deleteEvent.isPending}
+              className="min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-wait"
             >
-              Delete Event
+              {deleteEvent.isPending ? "Deleting..." : "Delete Event"}
             </button>
           </div>
         </ModalWrapper>
