@@ -80,3 +80,30 @@ export async function sendPasswordReset(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email);
   if (error) throw error;
 }
+
+export async function verifyCurrentPassword(email, password) {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    throw new AuthServiceError("Your current password is incorrect.", "wrong_password");
+  }
+}
+
+export async function changePasswordChecked({ email, currentPassword, newPassword }) {
+  await verifyCurrentPassword(email, currentPassword);
+  return changePassword(newPassword);
+}
+
+export async function updateMyName(fullName) {
+  const { error } = await supabase.rpc("update_my_name", { p_full_name: fullName });
+  if (error) throw error;
+}
+
+// Supabase emails a confirmation link to the new address.
+// The email only changes after that link is clicked.
+export async function requestEmailChange(email) {
+  const { error } = await supabase.auth.updateUser(
+    { email },
+    { emailRedirectTo: `${window.location.origin}/admin/account` }
+  );
+  if (error) throw error;
+}
