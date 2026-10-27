@@ -16,6 +16,7 @@ import { WhyChooseUs } from '../features/landing/WhyChooseUs.jsx';
 import { BeardistaBlend } from '../features/landing/BeardistaBlend.jsx';
 import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
+import { FAQSection } from '../features/landing/FAQSection.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
 import {
   customerFavoritesData,
@@ -30,6 +31,7 @@ import { useMenuItems, useCategories } from '../backend/hooks/useMenu';
 import { buildFavorites } from '../backend/mappers/menuMapper';
 import { useEvents } from '../backend/hooks/useEvents';
 import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
+import { useFaqs } from '../backend/hooks/useContent';
 
 // --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
@@ -66,6 +68,9 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     ...whatsBrewingData,
     event: buildFeaturedEvent(events) ?? whatsBrewingData.event,
   };
+
+  // FAQ section: real FAQs from Supabase. Hidden when there are none yet.
+  const { data: faqs } = useFaqs();
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
@@ -142,6 +147,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             reviews={reviewsData}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
+          {faqs?.length > 0 && <FAQSection faqs={faqs ?? []} />}
           <StayConnected />
           <Footer onNavigate={handleNavigate} />
         </>

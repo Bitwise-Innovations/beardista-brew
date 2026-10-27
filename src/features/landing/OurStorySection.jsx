@@ -25,14 +25,24 @@ export const OurStorySection = ({ onReadMore }) => {
 
         {/* Right Column: Editorial Text Block */}
         <div className="order-1 lg:order-2 flex flex-col justify-center lg:pl-6 space-y-6">
-          {/* Section Heading */}
-          <h2 className="text-3xl md:text-5xl font-extrabold text-[#19244E] uppercase tracking-widest leading-tight">
-            OUR STORY
-          </h2>
+          {/* Section Heading with orange label and accent bar */}
+          <div>
+            <p className="text-xs font-bold tracking-[0.3em] text-[#E58422] uppercase mb-3">
+              SINCE DAY ONE
+            </p>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-[#19244E] uppercase tracking-widest leading-tight">
+              OUR STORY
+            </h2>
+            <div className="w-16 h-1 rounded-full bg-[#E58422] mt-4" />
+          </div>
+
+          {/* Lead Quote: first sentence of the brand narrative */}
+          <p className="text-lg md:text-2xl font-semibold text-[#19244E] leading-snug border-l-4 border-[#E58422] pl-4">
+            Beardista Brew isn't just about exceptional coffee; it's about the connections forged over a steaming cup.
+          </p>
 
           {/* Core Brand Narrative Copy (Exact text from reference image) */}
-          <p className="text-base sm:text-lg text-[#111111] leading-relaxed font-normal">
-            Beardista Brew isn't just about exceptional coffee; it's about the connections forged over a steaming cup.
+          <p className="text-base md:text-lg text-[#111111]/80 leading-relaxed font-normal">
             We started with a simple belief: a cafe should be the heart of a neighborhood, a place where the community
             gathers, ideas are shared, and everyone feels like a regular from their first visit. We source our beans ethically,
             roast them locally, and pour our passion into every detail, ensuring your experience is as rich and nuanced as
