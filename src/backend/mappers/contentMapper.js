@@ -23,7 +23,10 @@ export function mapAnnouncementToDb(announcement) {
   for (const [source, target] of Object.entries(fields)) {
     if (Object.hasOwn(announcement, source)) mapped[target] = announcement[source];
   }
-  for (const field of ["is_active", "start_date", "end_date"]) {
+  for (const field of [
+    "is_active", "start_date", "end_date", "type", "custom_label",
+    "image_url", "button_label", "link_type", "link_target", "sort_order",
+  ]) {
     if (Object.hasOwn(announcement, field)) mapped[field] = announcement[field];
   }
 

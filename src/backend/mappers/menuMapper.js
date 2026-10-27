@@ -37,11 +37,11 @@ export function mapCategoryToDb(category) {
     if (Object.hasOwn(category, source)) mapped[target] = category[source];
   }
 
-  if (Object.hasOwn(category, "sort_order")) {
-    mapped.sort_order = category.sort_order;
-  }
-  if (Object.hasOwn(category, "is_active")) {
-    mapped.is_active = category.is_active;
+  for (const field of [
+    "sort_order", "is_active", "slug", "description",
+    "group_name", "color", "badge", "icon_url", "status",
+  ]) {
+    if (Object.hasOwn(category, field)) mapped[field] = category[field];
   }
 
   return mapped;
@@ -66,12 +66,9 @@ export function mapMenuItemToDb(item) {
   }
 
   for (const field of [
-    "category_id",
-    "image_url",
-    "is_available",
-    "is_favorite",
-    "view_count",
-    "sort_order",
+    "category_id", "image_url", "is_available", "is_favorite",
+    "view_count", "sort_order", "flavor_profile", "temperatures",
+    "calories", "tags", "add_ons", "is_archived",
   ]) {
     if (Object.hasOwn(item, field)) mapped[field] = item[field];
   }
@@ -79,9 +76,8 @@ export function mapMenuItemToDb(item) {
   return mapped;
 }
 
-
 // ---------------------------------------------------------------------------
-// Display mappers: ONE shape used by BOTH the customer site and the admin.
+// Display mappers: ONE shape used by the customer site.
 // Input rows come from menuService (already passed through mapMenuItemFromDb /
 // mapCategoryFromDb). Output matches what MenuPage, CustomerFavorites and
 // ItemDetailsModal expect.
@@ -100,16 +96,15 @@ export function mapMenuItemForDisplay(item, categoryNameById = {}) {
     category: categoryNameById[categoryId] ?? "",
     description: item.description ?? "",
     price: `₱${Number(item.price)}`, // shown to customers, e.g. "₱140"
-    priceValue: Number(item.price), // plain number, for admin forms
+    priceValue: Number(item.price), // plain number
     image: item.image_url || fallbackImg,
     isAvailable,
     status: isAvailable ? "AVAILABLE" : "SOLD OUT",
     isFavorite: Boolean(item.isFavorite ?? item.is_favorite),
     viewCount: item.viewCount ?? item.view_count ?? 0,
-    // Optional columns. Only filled if they exist in the database;
-    // otherwise undefined and ItemDetailsModal uses its own defaults.
+    // Optional columns; undefined lets ItemDetailsModal use its own defaults.
     flavorProfile: item.flavor_profile ?? undefined,
-    contains: item.contains ?? undefined,
+    contains: item.tags?.length ? item.tags.join(", ").toUpperCase() : undefined,
     details: item.details ?? undefined,
   };
 }
@@ -120,7 +115,7 @@ export function mapCategoryForDisplay(category) {
   return {
     id: category.id,
     name: category.name,
-    icon: category.icon ?? null, // null -> the page picks a default icon
+    icon: category.icon_url ?? null, // null -> the page picks a default icon
   };
 }
 
@@ -150,39 +145,4 @@ export function buildFavorites(items, categories, limit = 3) {
   return buildMenuItems(items, categories)
     .filter((item) => item.isFavorite && item.isAvailable)
     .slice(0, limit);
-}
-
-
-// ---------------------------------------------------------------------------
-// Admin shape: what the admin Menu Management page and its drawers expect.
-// Same database rows as the customer site, different display shape
-// (category as a name, price as a plain number, "available"/"availability").
-// ---------------------------------------------------------------------------
-
-export function mapMenuItemForAdmin(item, categoryNameById = {}) {
-  if (!item) return item;
-
-  const isAvailable = Boolean(item.isAvailable ?? item.is_available);
-  const categoryId = item.categoryId ?? item.category_id;
-
-  return {
-    id: item.id,
-    name: item.name,
-    categoryId,
-    category: categoryNameById[categoryId] ?? "",
-    description: item.description ?? "",
-    price: Number(item.price),
-    image: item.image_url ?? "",
-    available: isAvailable,
-    availability: isAvailable,
-    isFavorite: Boolean(item.isFavorite ?? item.is_favorite),
-    viewCount: item.viewCount ?? item.view_count ?? 0,
-  };
-}
-
-// All items for the admin. Returns [] while loading or on error.
-export function buildAdminMenuItems(items, categories) {
-  if (!Array.isArray(items)) return [];
-  const byId = categoryLookup(categories);
-  return items.map((item) => mapMenuItemForAdmin(item, byId));
 }

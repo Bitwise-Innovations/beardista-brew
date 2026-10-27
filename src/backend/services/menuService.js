@@ -58,7 +58,7 @@ export async function fetchMenuItems({
   categoryId,
   availableOnly = false,
 } = {}) {
-  let query = supabase.from("menu_items").select("*").order("sort_order");
+   let query = query.eq("is_archived", false);
   if (categoryId !== undefined) query = query.eq("category_id", categoryId);
   if (availableOnly) query = query.eq("is_available", true);
 

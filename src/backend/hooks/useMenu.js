@@ -10,6 +10,7 @@ import {
   fetchMenuItems,
   incrementItemViewCount,
   reorderCategories,
+  uploadMenuItemImage
 } from "../services/menuService";
 
 export const menuQueryKeys = {
@@ -110,4 +111,7 @@ export function useIncrementItemViewCount() {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: menuQueryKeys.items() }),
   });
+}
+export function useUploadMenuImage() {
+  return useMutation({ mutationFn: (file) => uploadMenuItemImage(file) });
 }

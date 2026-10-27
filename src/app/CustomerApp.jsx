@@ -31,7 +31,8 @@ import { useMenuItems, useCategories } from '../backend/hooks/useMenu';
 import { buildFavorites } from '../backend/mappers/menuMapper';
 import { useEvents } from '../backend/hooks/useEvents';
 import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
-import { useFaqs } from '../backend/hooks/useContent';
+import { useAnnouncements, useFaqs } from '../backend/hooks/useContent';
+import { LIVE_SLOTS } from '../features/admin/components/announcements/announcementUtils';
 
 // --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
@@ -69,12 +70,18 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     event: buildFeaturedEvent(events) ?? whatsBrewingData.event,
   };
 
+  // What's Brewing announcements: live rows from Supabase (already active, in date, sorted).
+  // Only the first LIVE_SLOTS are shown; with none, the sample cards stay on screen.
+  const { data: announcements } = useAnnouncements();
+  const liveAnnouncements = (announcements ?? []).slice(0, LIVE_SLOTS);
+
   // FAQ section: real FAQs from Supabase. Hidden when there are none yet.
   const { data: faqs } = useFaqs();
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
+  const [announcedEvent, setAnnouncedEvent] = useState(null);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
 
   const handleExploreMenu = () => {
@@ -91,6 +98,14 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDcnRgPZvSAeWjuil3h6B2n2OeNmjdePD_56mCf8tbN27R8djWpb41wqtMsGBB33MYEq7MYoc_XEHazaMV5djUC4aj1tO7WGri2VDOrQCpwy9kfyTW4pIYbtD8y59TdVLEfgT2Ki2fRvmGUqh5cRCsPjEqBERczKKEpig7TaOjLdLq44MoClCswni8iPvsyuD3vwdh1i2k-mEzX34CSvsakhJcRy4hB49x3HF7RP_GpqHHKZ443mMC5eogBmmiYaFNL2_G9B2LFwlduvQ',
       details: whatsBrewingData.mustTry.details
     });
+  };
+
+  // Announcement button linked to an event: open the registration modal for that event
+  const handleOpenAnnouncedEvent = (event) => {
+    const eventData = buildFeaturedEvent([event]);
+    if (!eventData) return;
+    setAnnouncedEvent(eventData);
+    setIsEventOpen(true);
   };
 
   const handleNavigate = (page) => {
@@ -136,8 +151,16 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onViewDetails={(item) => setSelectedItem(item)}
           />
           <WhatsBrewing
+            announcements={liveAnnouncements}
+            events={events ?? []}
+            menuItems={menuItems ?? []}
+            onOpenEvent={handleOpenAnnouncedEvent}
+            onOpenItem={(item) => setSelectedItem(item)}
             data={brewingData}
-            onRegister={() => setIsEventOpen(true)}
+            onRegister={() => {
+              setAnnouncedEvent(null);
+              setIsEventOpen(true);
+            }}
             onViewTsamporado={handleViewTsamporado}
           />
           <OurStorySection onReadMore={() => handleNavigate('story')} />
@@ -158,7 +181,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       <EventDetailsModal
         isOpen={isEventOpen}
         onClose={() => setIsEventOpen(false)}
-        eventData={brewingData.event}
+        eventData={announcedEvent ?? brewingData.event}
       />
       <StoryModal isOpen={isStoryOpen} onClose={() => setIsStoryOpen(false)} />
     </div>
