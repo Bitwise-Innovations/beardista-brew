@@ -6,8 +6,10 @@ import {
   duplicateEventRow,
   getAdminEventsData,
   getEventById,
+  getEventForm,
   getEvents,
   registerForEvent,
+  resendEventCode,
   saveEventForms,
   updateEvent,
   updateEventRow,
@@ -22,6 +24,10 @@ export const eventQueryKeys = {
   details: () => [...eventQueryKeys.all, "detail"],
   detail: (id, options) => [...eventQueryKeys.details(), id, options],
 };
+
+// ---------------------------------------------------------------------------
+// Customer hooks
+// ---------------------------------------------------------------------------
 
 export function useEvents(options = {}) {
   return useQuery({
@@ -38,21 +44,34 @@ export function useEvent(id, options = {}) {
   });
 }
 
-export function useRegisterForEvent() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: registerForEvent,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: eventQueryKeys.all }),
+export function useEventForm(eventId) {
+  return useQuery({
+    queryKey: [...eventQueryKeys.all, "form", eventId],
+    queryFn: () => getEventForm(eventId),
+    enabled: Boolean(eventId),
   });
+}
+
+export function useRegisterForEvent() {
+  return useMutation({ mutationFn: registerForEvent });
 }
 
 export function useVerifyEventCode() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ registrationId, code }) => verifyEventCode(registrationId, code),
+    // Refresh spots left once someone is confirmed.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eventQueryKeys.all }),
   });
 }
+
+export function useResendEventCode() {
+  return useMutation({ mutationFn: resendEventCode });
+}
+
+// ---------------------------------------------------------------------------
+// Old admin hooks (kept for anything still using them)
+// ---------------------------------------------------------------------------
 
 export function useCreateEvent() {
   const queryClient = useQueryClient();

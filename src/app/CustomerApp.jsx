@@ -56,7 +56,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   const { data: events } = useEvents();
   const brewingData = {
     ...whatsBrewingData,
-    event: buildFeaturedEvent(events) ?? whatsBrewingData.event,
+    event: buildFeaturedEvent(events),
   };
 
   const [selectedItem, setSelectedItem] = useState(null);

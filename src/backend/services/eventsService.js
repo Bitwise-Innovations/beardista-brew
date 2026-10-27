@@ -1,6 +1,10 @@
 import { supabase } from "../lib/supabase";
 import { mapEventFromDb, mapEventToDb } from "../mappers/eventMapper";
 
+// ---------------------------------------------------------------------------
+// Customer: events and sign-up
+// ---------------------------------------------------------------------------
+
 export async function getEvents({ includeDraft = false } = {}) {
   let query = supabase.from("events").select("*").order("start_time");
   if (!includeDraft) query = query.neq("status", "draft");
@@ -19,29 +23,72 @@ export async function getEventById(id, { includeDraft = false } = {}) {
   return mapEventFromDb(data);
 }
 
-export async function registerForEvent(registration) {
-  const { data, error } = await supabase.functions.invoke("event-code", {
-    body: {
-      action: "register",
-      eventId: registration.eventId,
-      email: registration.email ?? registration.userEmail,
-      fullName: registration.fullName,
-      phone: registration.phone ?? null,
-    },
-  });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+// Calls the event-code Edge Function. On failure, throws an Error whose .details
+// holds the function's JSON reply (attemptsLeft, locked, expired, registrationId).
+async function callEventCode(body) {
+  const { data, error } = await supabase.functions.invoke("event-code", { body });
+  if (error) {
+    let details = {};
+    try {
+      details = (await error.context?.json()) ?? {};
+    } catch {
+      // Keep the default message.
+    }
+    const failure = new Error(details.error || "Event registration is unavailable right now.");
+    failure.details = details;
+    throw failure;
+  }
   return data;
 }
 
-export async function verifyEventCode(registrationId, code) {
-  const { data, error } = await supabase.functions.invoke("event-code", {
-    body: { action: "verify", registrationId, code },
-  });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  return data;
+export const registerForEvent = ({ eventId, participantTypeId, email, fullName, answers }) =>
+  callEventCode({ action: "register", eventId, participantTypeId, email, fullName, answers });
+
+export const verifyEventCode = (registrationId, code) =>
+  callEventCode({ action: "verify", registrationId, code });
+
+export const resendEventCode = (registrationId) =>
+  callEventCode({ action: "resend", registrationId });
+
+// Participant types (with confirmed counts) and their questions, for the public form.
+export async function getEventForm(eventId) {
+  const [types, spots] = await Promise.all([
+    supabase
+      .from("participant_types")
+      .select("id, name, capacity, opens_at, closes_at, sort_order")
+      .eq("event_id", eventId)
+      .order("sort_order")
+      .order("id"),
+    supabase.rpc("get_event_type_spots", { p_event_id: eventId }),
+  ]);
+  if (types.error) throw types.error;
+  if (spots.error) throw spots.error;
+
+  const typeIds = types.data.map((type) => type.id);
+  let questions = [];
+  if (typeIds.length > 0) {
+    const result = await supabase
+      .from("form_questions")
+      .select("id, participant_type_id, label, type, required, help_text, options, sort_order")
+      .in("participant_type_id", typeIds)
+      .order("sort_order")
+      .order("id");
+    if (result.error) throw result.error;
+    questions = result.data;
+  }
+
+  const confirmedById = Object.fromEntries(
+    spots.data.map((spot) => [spot.participant_type_id, spot.confirmed])
+  );
+  return {
+    types: types.data.map((type) => ({ ...type, confirmed: confirmedById[type.id] ?? 0 })),
+    questions,
+  };
 }
+
+// ---------------------------------------------------------------------------
+// Old admin helpers (kept for anything still using them)
+// ---------------------------------------------------------------------------
 
 export async function createEvent(event) {
   const { data, error } = await supabase
@@ -68,6 +115,10 @@ export async function deleteEvent(id) {
   const { error } = await supabase.from("events").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Admin: Events & Throwdown Manager
+// ---------------------------------------------------------------------------
 
 function throwFirstError(results) {
   const failed = results.find((result) => result.error);
