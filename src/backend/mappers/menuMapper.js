@@ -1,3 +1,5 @@
+import fallbackImg from "@/assets/beardista_brew.jpg";
+
 export function mapCategoryFromDb(category) {
   if (!category) return category;
 
@@ -35,11 +37,11 @@ export function mapCategoryToDb(category) {
     if (Object.hasOwn(category, source)) mapped[target] = category[source];
   }
 
-  if (Object.hasOwn(category, "sort_order")) {
-    mapped.sort_order = category.sort_order;
-  }
-  if (Object.hasOwn(category, "is_active")) {
-    mapped.is_active = category.is_active;
+  for (const field of [
+    "sort_order", "is_active", "slug", "description",
+    "group_name", "color", "badge", "icon_url", "status",
+  ]) {
+    if (Object.hasOwn(category, field)) mapped[field] = category[field];
   }
 
   return mapped;
@@ -64,15 +66,83 @@ export function mapMenuItemToDb(item) {
   }
 
   for (const field of [
-    "category_id",
-    "image_url",
-    "is_available",
-    "is_favorite",
-    "view_count",
-    "sort_order",
+    "category_id", "image_url", "is_available", "is_favorite",
+    "view_count", "sort_order", "flavor_profile", "temperatures",
+    "calories", "tags", "add_ons", "is_archived",
   ]) {
     if (Object.hasOwn(item, field)) mapped[field] = item[field];
   }
 
   return mapped;
+}
+
+// ---------------------------------------------------------------------------
+// Display mappers: ONE shape used by the customer site.
+// Input rows come from menuService (already passed through mapMenuItemFromDb /
+// mapCategoryFromDb). Output matches what MenuPage, CustomerFavorites and
+// ItemDetailsModal expect.
+// ---------------------------------------------------------------------------
+
+export function mapMenuItemForDisplay(item, categoryNameById = {}) {
+  if (!item) return item;
+
+  const isAvailable = Boolean(item.isAvailable ?? item.is_available);
+  const categoryId = item.categoryId ?? item.category_id;
+
+  return {
+    id: item.id,
+    name: item.name,
+    categoryId,
+    category: categoryNameById[categoryId] ?? "",
+    description: item.description ?? "",
+    price: `₱${Number(item.price)}`, // shown to customers, e.g. "₱140"
+    priceValue: Number(item.price), // plain number
+    image: item.image_url || fallbackImg,
+    isAvailable,
+    status: isAvailable ? "AVAILABLE" : "SOLD OUT",
+    isFavorite: Boolean(item.isFavorite ?? item.is_favorite),
+    viewCount: item.viewCount ?? item.view_count ?? 0,
+    // Optional columns; undefined lets ItemDetailsModal use its own defaults.
+    flavorProfile: item.flavor_profile ?? undefined,
+    contains: item.tags?.length ? item.tags.join(", ").toUpperCase() : undefined,
+    details: item.details ?? undefined,
+  };
+}
+
+export function mapCategoryForDisplay(category) {
+  if (!category) return category;
+
+  return {
+    id: category.id,
+    name: category.name,
+    icon: category.icon_url ?? null, // null -> the page picks a default icon
+  };
+}
+
+function categoryLookup(categories) {
+  const byId = {};
+  (Array.isArray(categories) ? categories : []).forEach((c) => {
+    byId[c.id] = c.name;
+  });
+  return byId;
+}
+
+// All items, ready to show. Returns [] when there is nothing yet.
+export function buildMenuItems(items, categories) {
+  if (!Array.isArray(items)) return [];
+  const byId = categoryLookup(categories);
+  return items.map((item) => mapMenuItemForDisplay(item, byId));
+}
+
+// Categories, ready to show. Returns [] when there is nothing yet.
+export function buildCategories(categories) {
+  if (!Array.isArray(categories)) return [];
+  return categories.map(mapCategoryForDisplay);
+}
+
+// Home page "Customer Favorites" (max `limit`, available items only).
+export function buildFavorites(items, categories, limit = 3) {
+  return buildMenuItems(items, categories)
+    .filter((item) => item.isFavorite && item.isAvailable)
+    .slice(0, limit);
 }

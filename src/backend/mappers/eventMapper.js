@@ -52,3 +52,39 @@ export function mapEventRegistrationFromDb(registration) {
     createdAt: registration.created_at,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Customer home page: "What's Brewing" event card.
+// Picks the next event that is still running (not draft / cancelled / done)
+// and returns the card shape. Returns null when there is none, so the page
+// can keep showing its sample data.
+// ---------------------------------------------------------------------------
+const HIDDEN_STATUSES = ["draft", "cancelled", "canceled", "completed", "closed", "concluded"];
+
+export function buildFeaturedEvent(events, now = new Date()) {
+  if (!Array.isArray(events)) return null;
+
+  const running = events.filter(
+    (e) =>
+      e.isActive !== false &&
+      !HIDDEN_STATUSES.includes(String(e.status ?? "").toLowerCase())
+  );
+  if (running.length === 0) return null;
+
+  // events arrive ordered by start time: take the next upcoming one,
+  // or the most recent one if every running event has already started
+  const upcoming = running.filter((e) => !e.startTime || new Date(e.startTime) >= now);
+  const pick = upcoming[0] ?? running[running.length - 1];
+
+  return {
+    id: pick.id,
+    tag: pick.tag || "COMMUNITY EVENT",
+    title: pick.title,
+    description: pick.description ?? "",
+    buttonLabel: pick.button_label || "REGISTER & JOIN",
+    location: pick.location ?? "",
+    startTime: pick.startTime ?? null,
+    endTime: pick.endTime ?? null,
+    image: pick.imageUrl ?? null,
+  };
+}

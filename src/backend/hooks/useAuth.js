@@ -1,13 +1,16 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../lib/supabase";
 import {
   changePassword,
+  changePasswordChecked,
   getProfile,
   getSession,
   logIn,
   logOut,
+  requestEmailChange,
   sendPasswordReset,
+  updateMyName,
 } from "../services/authService";
 
 const AUTH_QUERY_KEY = ["auth", "current"];
@@ -52,6 +55,17 @@ export function useAuth() {
 
   const passwordMutation = useMutation({ mutationFn: changePassword });
   const resetMutation = useMutation({ mutationFn: sendPasswordReset });
+  const passwordCheckedMutation = useMutation({ mutationFn: changePasswordChecked });
+
+  const nameMutation = useMutation({
+    mutationFn: updateMyName,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: requestEmailChange,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEY }),
+  });
 
   return {
     user: currentAuth.data?.user ?? null,
@@ -66,5 +80,11 @@ export function useAuth() {
     isChangingPassword: passwordMutation.isPending,
     sendPasswordReset: resetMutation.mutateAsync,
     isSendingPasswordReset: resetMutation.isPending,
+    changePasswordChecked: passwordCheckedMutation.mutateAsync,
+    isChangingPasswordChecked: passwordCheckedMutation.isPending,
+    updateMyName: nameMutation.mutateAsync,
+    isUpdatingName: nameMutation.isPending,
+    requestEmailChange: emailMutation.mutateAsync,
+    isRequestingEmailChange: emailMutation.isPending,
   };
 }

@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabase";
+import { supabase } from "../lib/supabase";
 import { mapEventFromDb, mapEventToDb } from "../mappers/eventMapper";
 
 export async function getEvents({ includeDraft = false } = {}) {

@@ -42,7 +42,7 @@ export const ItemDetailsModal = ({ item, onClose }) => {
     >
       {/* Modal Dialog Card: Uniform fixed dimensions matching the Stubble reference */}
       <div
-        className="bg-white w-full max-w-215 md:h-140 rounded-3xl overflow-hidden shadow-2xl border border-black/5 flex flex-col md:flex-row max-h-[92vh] animate-scaleUp"
+        className="bg-white w-full max-w-215 md:h-140 rounded-3xl overflow-hidden shadow-2xl border border-black/5 flex flex-col md:flex-row max-h-[92dvh] animate-scaleUp"
         onClick={(e) => e.stopPropagation()} // Prevent accidental dismissal on card clicks
       >
         
