@@ -52,9 +52,16 @@ export default function CategoryModal({
     setForm((current) => ({ ...current, [field]: value }));
 
   // Preview only: the picked file stays in the browser and is never uploaded.
-  const chooseIcon = (event) => {
+   const chooseIcon = (event) => {
     const file = event.target.files[0];
-    if (file) setForm((current) => ({ ...current, iconImage: URL.createObjectURL(file), badge: "" }));
+    if (file) {
+      setForm((current) => ({
+        ...current,
+        iconImage: URL.createObjectURL(file),
+        iconFile: file,
+        badge: "",
+      }));
+    }
     event.target.value = "";
   };
 
@@ -202,7 +209,7 @@ export default function CategoryModal({
                     <button
                       key={name}
                       type="button"
-                      onClick={() => setForm((current) => ({ ...current, badge: name, iconImage: "" }))}
+                      onClick={() => setForm((current) => ({ ...current, badge: name, iconImage: "", iconFile: null }))}
                       aria-pressed={selected}
                       aria-label={label}
                       title={label}

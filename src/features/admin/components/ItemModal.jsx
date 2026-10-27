@@ -89,7 +89,12 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
 
   // Preview only: the picked file stays in the browser and is never uploaded.
   const pickImage = (file) => {
-    if (file?.type.startsWith("image/")) update("image", URL.createObjectURL(file));
+    if (!file?.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors((current) => ({ ...current, image: "Image must be 5 MB or smaller." }));
+      return;
+    }
+    setForm((current) => ({ ...current, image: URL.createObjectURL(file), imageFile: file }));
   };
 
   const submit = (event) => {
@@ -199,7 +204,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                 <div className="mt-1 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => update("image", "")}
+                    onClick={() => setForm((current) => ({ ...current, image: "", imageFile: null }))}
                     className="min-h-11 rounded-xl px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 sm:min-h-9"
                   >
                     Remove image

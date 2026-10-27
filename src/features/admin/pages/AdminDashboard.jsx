@@ -39,6 +39,13 @@ export default function AdminDashboard() {
   const staff = useStaffIdentity();
 
   const now = new Date();
+  const today = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
 
   const storeToggle = (
     <div className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[#EAE5DF] bg-white px-4 py-2.5 shadow-sm sm:w-auto">

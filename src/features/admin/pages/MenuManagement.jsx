@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Plus,
@@ -16,78 +16,89 @@ import ModalWrapper, { ToggleSwitch } from "../components/ModalWrapper";
 import { cancelButtonClass } from "../components/formStyles";
 import ItemModal from "../components/ItemModal";
 import CategoryModal from "../components/CategoryModal";
-import { categoryGroups, toSlug } from "../components/categoryUtils";
 import PageHeader from "../components/PageHeader";
 import StatCard, { StatGrid } from "../components/StatCard";
 import DataCard from "../components/DataCard";
 import Pagination from "../components/Pagination";
-import { usePagination } from "../components/usePageSize";
-import { menu_items as sampleItems } from "../data/menuMockData";
 import EmptyState from "../components/EmptyState";
+import BrewingLoader from "../components/BrewingLoader";
+import { usePagination } from "../components/usePageSize";
+import {
+  useCategories,
+  useMenuItems,
+  useCreateCategory,
+  useUpdateCategory,
+  useCreateMenuItem,
+  useUpdateMenuItem,
+  useDeleteMenuItem,
+  useUploadMenuImage,
+} from "../../../backend/hooks/useMenu";
+import { useStoreSettings, useUpdateStoreSetting } from "../../../backend/hooks/useContent";
+import {
+  savedUrl,
+  toAdminCategory,
+  toAdminItem,
+  toCategoryPayload,
+  toItemPayload,
+} from "../../../backend/mappers/adminMenuMapper";
 
 const ALL_ITEMS = "All Items";
-
-const [coffeeBar, nonCoffee, food] = categoryGroups;
-const foodCategories = ["Savory Bites", "Pasta", "Rice", "Salad", "Extras"];
-const nonCoffeeCategories = ["Zero-Proof", "Matcha"];
-
-const initialCategories = [
-  "Signatures",
-  "Specialty Coffee",
-  "Competition Artisans",
-  "Milk Creations",
-  "Zero-Proof",
-  "Matcha",
-  "Foam Series",
-  "Bespokes",
-  "Savory Bites",
-  "Pasta",
-  "Rice",
-  "Salad",
-  "Extras",
-].map((name, index) => {
-  const isFood = foodCategories.includes(name);
-
-  return {
-    name,
-    slug: toSlug(name),
-    priority: index + 1,
-    description: "",
-    group: isFood ? food : nonCoffeeCategories.includes(name) ? nonCoffee : coffeeBar,
-    color: "#E58422",
-    badge: isFood ? "food" : "coffee",
-    iconImage: "",
-    showOnMenu: true,
-    status: "active",
-  };
-});
+const MENU_ONLINE_KEY = "menu_online";
 
 const catalogColumns =
   "lg:grid-cols-[minmax(220px,2fr)_minmax(120px,0.8fr)_100px_140px_100px]";
 
 export default function MenuManagement() {
-  const [items, setItems] = useState(sampleItems);
-  const [categories, setCategories] = useState(initialCategories);
+  const categoriesQuery = useCategories();
+  const itemsQuery = useMenuItems();
+  const settingsQuery = useStoreSettings();
+  const updateSetting = useUpdateStoreSetting();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const createItem = useCreateMenuItem();
+  const updateItem = useUpdateMenuItem();
+  const deleteItem = useDeleteMenuItem();
+  const uploadImage = useUploadMenuImage();
+
   const [modal, setModal] = useState(null);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(ALL_ITEMS);
-  const [storeOnline, setStoreOnline] = useState(true);
   const [notice, setNotice] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const categories = useMemo(
+    () => (categoriesQuery.data ?? []).map(toAdminCategory),
+    [categoriesQuery.data]
+  );
+  const categoryNameById = useMemo(
+    () => Object.fromEntries(categories.map((entry) => [entry.id, entry.name])),
+    [categories]
+  );
+  const menuItems = useMemo(
+    () => (itemsQuery.data ?? []).map((row) => toAdminItem(row, categoryNameById)),
+    [itemsQuery.data, categoryNameById]
+  );
+
+  const storeOnline =
+    settingsQuery.data?.find((setting) => setting.key === MENU_ONLINE_KEY)?.value?.online ?? true;
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 3500);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   useEffect(() => {
     if (openMenuId === null) return;
-
     const closeMenu = (event) => {
       if (event.type === "keydown" && event.key !== "Escape") return;
       if (event.type === "pointerdown" && event.target.closest("[data-row-menu]")) return;
       setOpenMenuId(null);
     };
-
     document.addEventListener("pointerdown", closeMenu);
     document.addEventListener("keydown", closeMenu);
-
     return () => {
       document.removeEventListener("pointerdown", closeMenu);
       document.removeEventListener("keydown", closeMenu);
@@ -96,17 +107,13 @@ export default function MenuManagement() {
 
   useEffect(() => {
     if (!modal) return;
-
     const closeOnEscape = (event) => {
-      if (event.key === "Escape") setModal(null);
+      if (event.key === "Escape" && !saving) setModal(null);
     };
-
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [modal]);
+  }, [modal, saving]);
 
-  // Archived items stay in state but leave the catalog and counts.
-  const menuItems = items.filter((item) => !item.archived);
   const sortedCategories = [...categories].sort(
     (a, b) => a.priority - b.priority || a.name.localeCompare(b.name)
   );
@@ -121,113 +128,154 @@ export default function MenuManagement() {
   );
 
   const pager = usePagination(filteredItems, [search, category]);
-  const pageItems = pager.pageItems;
+  const availableCount = storeOnline ? menuItems.filter((item) => item.available).length : 0;
 
-  const availableCount = storeOnline
-    ? menuItems.filter((item) => item.available).length
-    : 0;
-
-  const notify = (message) => setNotice(message);
   const closeModal = () => setModal(null);
 
-  const changeSearch = (value) => setSearch(value);
-  const changeCategory = (value) => setCategory(value);
+  const toggleStore = async () => {
+    try {
+      await updateSetting.mutateAsync({ key: MENU_ONLINE_KEY, value: { online: !storeOnline } });
+      setNotice(storeOnline ? "Menu is now paused." : "Menu is back online.");
+    } catch {
+      setNotice("We couldn't change the store status. Please try again.");
+    }
+  };
 
-  const toggleItem = (id) =>
-    setItems((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, available: !item.available } : item
-      )
-    );
+  const toggleItem = async (item) => {
+    try {
+      await updateItem.mutateAsync({ id: item.id, is_available: !item.available });
+    } catch {
+      setNotice(`We couldn't update ${item.name}. Please try again.`);
+    }
+  };
 
   const editItem = (item) => {
     setOpenMenuId(null);
     setModal({ type: "item", item });
   };
 
-  const deleteItem = (item) => {
+  const askDelete = (item) => {
     setOpenMenuId(null);
     setModal({ type: "delete", item });
   };
 
-  const saveItem = (values) => {
+  const saveItem = async (values) => {
     const editing = modal.item;
+    setSaving(true);
+    try {
+      const imageUrl = values.imageFile
+        ? await uploadImage.mutateAsync(values.imageFile)
+        : savedUrl(values.image);
+      const categoryId = categories.find((entry) => entry.name === values.category)?.id ?? null;
+      const payload = toItemPayload(values, categoryId, imageUrl);
 
-    if (editing) {
-      setItems((current) =>
-        current.map((item) => (item.id === editing.id ? { ...item, ...values } : item))
-      );
-      notify(`${values.name} was updated.`);
-    } else {
-      setItems((current) => [
-        ...current,
-        { id: Math.max(0, ...current.map((item) => item.id)) + 1, ...values },
-      ]);
-      notify(`${values.name} was added to the menu.`);
+      if (editing) await updateItem.mutateAsync({ id: editing.id, ...payload });
+      else await createItem.mutateAsync(payload);
+
+      setNotice(`${values.name} was ${editing ? "updated" : "added to the menu"}.`);
+      closeModal();
+    } catch {
+      setNotice(`We couldn't save ${values.name}. Please try again.`);
+    } finally {
+      setSaving(false);
     }
-
-    closeModal();
   };
 
-  const archiveItem = () => {
-    const { item: archived } = modal;
-    setItems((current) =>
-      current.map((item) => (item.id === archived.id ? { ...item, archived: true } : item))
-    );
-    notify(`${archived.name} was archived.`);
-    closeModal();
+  const archiveItem = async () => {
+    const { item } = modal;
+    try {
+      await updateItem.mutateAsync({ id: item.id, is_archived: true });
+      setNotice(`${item.name} was archived.`);
+      closeModal();
+    } catch {
+      setNotice(`We couldn't archive ${item.name}. Please try again.`);
+    }
   };
 
-  const confirmDelete = () => {
-    const { item: removed } = modal;
-    setItems((current) => current.filter((item) => item.id !== removed.id));
-    notify(`${removed.name} was deleted.`);
-    closeModal();
+  const confirmDelete = async () => {
+    const { item } = modal;
+    try {
+      await deleteItem.mutateAsync(item.id);
+      setNotice(`${item.name} was deleted.`);
+      closeModal();
+    } catch {
+      setNotice(`We couldn't delete ${item.name}. Please try again.`);
+    }
   };
 
-  const saveCategory = (values) => {
+  const saveCategory = async (values) => {
     const editing = modal.category;
+    setSaving(true);
+    try {
+      const iconUrl = values.iconFile
+        ? await uploadImage.mutateAsync(values.iconFile)
+        : savedUrl(values.iconImage);
+      const payload = toCategoryPayload(values, iconUrl);
 
-    if (editing) {
-      setCategories((current) =>
-        current.map((entry) => (entry.name === editing.name ? values : entry))
-      );
-
-      // A renamed category keeps its items and stays selected.
-      if (values.name !== editing.name) {
-        setItems((current) =>
-          current.map((item) =>
-            item.category === editing.name ? { ...item, category: values.name } : item
-          )
-        );
+      if (editing) {
+        await updateCategory.mutateAsync({ id: editing.id, ...payload });
         if (category === editing.name) setCategory(values.name);
+      } else {
+        await createCategory.mutateAsync(payload);
       }
-    } else {
-      setCategories((current) => [...current, values]);
-    }
 
-    if (values.status === "draft") notify(`${values.name} was saved as a draft.`);
-    else notify(`${values.name} category was ${editing ? "updated" : "created"}.`);
-    closeModal();
+      setNotice(
+        values.status === "draft"
+          ? `${values.name} was saved as a draft.`
+          : `${values.name} category was ${editing ? "updated" : "created"}.`
+      );
+      closeModal();
+    } catch {
+      setNotice(`We couldn't save ${values.name}. Please try again.`);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (itemsQuery.isPending || categoriesQuery.isPending) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <BrewingLoader label="Loading the menu..." />
+      </div>
+    );
+  }
+
+  if (itemsQuery.isError || categoriesQuery.isError) {
+    return (
+      <EmptyState
+        title="We couldn't load the menu."
+        message="Check your connection and try again."
+        action={
+          <button
+            type="button"
+            onClick={() => {
+              itemsQuery.refetch();
+              categoriesQuery.refetch();
+            }}
+            className="min-h-11 rounded-xl bg-[#19244E] px-4 text-xs font-bold text-white hover:bg-[#253570]"
+          >
+            Try again
+          </button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
       {notice && (
-        <div
-          role="status"
-          className="fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-3 rounded-2xl bg-[#19244E] px-5 py-4 text-sm font-semibold text-white shadow-xl"
-        >
+        <div role="status" className="fixed bottom-5 right-5 z-50 flex max-w-sm items-center gap-3 rounded-2xl bg-[#19244E] px-5 py-4 text-sm font-semibold text-white shadow-xl">
           <CheckCircle2 size={19} className="shrink-0 text-[#E58422]" />
           <span>{notice}</span>
-          <button
-            type="button"
-            onClick={() => setNotice("")}
-            aria-label="Dismiss notification"
-            className="ml-1 rounded-lg p-1 hover:bg-white/10"
-          >
+          <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notification" className="ml-1 rounded-lg p-1 hover:bg-white/10">
             <X size={16} />
           </button>
+        </div>
+      )}
+
+      {saving && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/60">
+          <BrewingLoader label="Saving..." />
         </div>
       )}
 
@@ -256,19 +304,18 @@ export default function MenuManagement() {
       {modal?.type === "delete" && (
         <ModalWrapper
           title="Delete Item?"
-          description={`${modal.item.name} will be removed from the sample menu list.`}
+          description={`${modal.item.name} will be permanently removed. Use Archive instead if you may bring it back.`}
           onClose={closeModal}
         >
           <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
-            <button type="button" onClick={closeModal} className={cancelButtonClass}>
-              Cancel
-            </button>
+            <button type="button" onClick={closeModal} className={cancelButtonClass}>Cancel</button>
             <button
               type="button"
               onClick={confirmDelete}
-              className="min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-rose-700"
+              disabled={deleteItem.isPending}
+              className="min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-extrabold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-wait"
             >
-              Delete
+              {deleteItem.isPending ? "Deleting..." : "Delete"}
             </button>
           </div>
         </ModalWrapper>
@@ -278,63 +325,59 @@ export default function MenuManagement() {
         title="Menu Management"
         description="Manage menu categories, item details, and availability for Beardista Brew."
         actions={
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end">
-          <div className="flex items-center gap-3 rounded-2xl border border-[#EAE5DF] bg-white px-4 py-1.5 shadow-sm">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF3E7] text-[#E58422]">
-              <Store size={18} />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-end">
+            <div className="flex items-center gap-3 rounded-2xl border border-[#EAE5DF] bg-white px-4 py-1.5 shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FFF3E7] text-[#E58422]">
+                <Store size={18} />
+              </div>
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">Global Availability</p>
+                <p className={`mt-0.5 text-xs font-extrabold ${storeOnline ? "text-emerald-700" : "text-rose-600"}`}>
+                  {storeOnline ? "Store Online" : "Store Offline"}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={storeOnline}
+                disabled={updateSetting.isPending}
+                label="Toggle global store availability"
+                onToggle={toggleStore}
+                className="ml-auto sm:ml-0"
+              />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                Global Availability
-              </p>
-              <p className={`mt-0.5 text-xs font-extrabold ${storeOnline ? "text-emerald-700" : "text-rose-600"}`}>
-                {storeOnline ? "Store Online" : "Store Offline"}
-              </p>
+
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:items-stretch">
+              <button
+                type="button"
+                onClick={() => setModal({ type: "category", category: null })}
+                className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#19244E] transition hover:border-[#E58422] hover:bg-orange-50 sm:px-4 sm:text-sm"
+              >
+                <Plus size={17} className="shrink-0 text-[#E58422]" />
+                Add Category
+              </button>
+              <button
+                type="button"
+                onClick={() => setModal({ type: "item", item: null })}
+                disabled={categories.length === 0}
+                title={categories.length === 0 ? "Add a category first" : undefined}
+                className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#E58422] px-3 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#cf7419] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:text-sm"
+              >
+                <Plus size={18} className="shrink-0" />
+                Add New Item
+              </button>
             </div>
-            <ToggleSwitch
-              checked={storeOnline}
-              label="Toggle global store availability"
-              onToggle={() => setStoreOnline((value) => !value)}
-              className="ml-auto sm:ml-0"
-            />
           </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:flex sm:items-stretch">
-            <button
-              type="button"
-              onClick={() => setModal({ type: "category", category: null })}
-              className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#19244E] transition hover:border-[#E58422] hover:bg-orange-50 sm:px-4 sm:text-sm"
-            >
-              <Plus size={17} className="shrink-0 text-[#E58422]" />
-              Add Category
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setModal({ type: "item", item: null })}
-              className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#E58422] px-3 py-2 text-xs font-extrabold text-white shadow-sm transition hover:bg-[#cf7419] sm:px-4 sm:text-sm"
-            >
-              <Plus size={18} className="shrink-0" />
-              Add New Item
-            </button>
-          </div>
-        </div>
         }
       />
 
       {!storeOnline && (
         <section className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div>
-            <p className="text-sm font-extrabold text-amber-950">
-              Global store availability is paused.
-            </p>
-            <p className="mt-0.5 text-xs leading-5 text-amber-800">
-              All items show as unavailable while the store is offline.
-            </p>
+            <p className="text-sm font-extrabold text-amber-950">Global store availability is paused.</p>
+            <p className="mt-0.5 text-xs leading-5 text-amber-800">All items show as unavailable while the store is offline.</p>
           </div>
           <button
             type="button"
-            onClick={() => setStoreOnline(true)}
+            onClick={toggleStore}
             className="min-h-11 self-start rounded-xl bg-[#19244E] px-4 py-2 text-xs font-bold text-white hover:bg-[#253570] sm:self-auto"
           >
             Turn Store Online
@@ -343,12 +386,7 @@ export default function MenuManagement() {
       )}
 
       <StatGrid columns={2}>
-        <StatCard
-          label="Total Menu Items"
-          value={menuItems.length}
-          sub={`Across ${categories.length} categories`}
-          icon={Coffee}
-        />
+        <StatCard label="Total Menu Items" value={menuItems.length} sub={`Across ${categories.length} categories`} icon={Coffee} />
         <StatCard
           label="Available Items"
           value={`${availableCount} of ${menuItems.length}`}
@@ -364,18 +402,13 @@ export default function MenuManagement() {
             <input
               type="text"
               value={search}
-              onChange={(event) => changeSearch(event.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Search by item name or description..."
               aria-label="Search menu items"
               className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-10 text-sm text-gray-800 outline-none transition focus:border-[#E58422] focus:bg-white focus:ring-2 focus:ring-orange-100 sm:h-10"
             />
             {search && (
-              <button
-                type="button"
-                onClick={() => changeSearch("")}
-                aria-label="Clear search"
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:text-gray-700"
-              >
+              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:text-gray-700">
                 <X size={17} />
               </button>
             )}
@@ -394,13 +427,8 @@ export default function MenuManagement() {
 
         {showFilters && (
           <div className="rounded-xl border border-orange-100 bg-orange-50/50 px-3 py-2.5">
-            <p className="text-xs font-extrabold uppercase tracking-wider text-[#19244E]">
-              Availability filter
-            </p>
-            <p className="mt-1 text-sm text-gray-600">
-              {availableCount} of {menuItems.length} items are available.
-              Use the availability switches to change this local preview.
-            </p>
+            <p className="text-xs font-extrabold uppercase tracking-wider text-[#19244E]">Availability</p>
+            <p className="mt-1 text-sm text-gray-600">{availableCount} of {menuItems.length} items are available.</p>
           </div>
         )}
 
@@ -417,30 +445,17 @@ export default function MenuManagement() {
                 <button
                   key={entry.name}
                   type="button"
-                  onClick={() => changeCategory(entry.name)}
+                  onClick={() => setCategory(entry.name)}
                   aria-pressed={selected}
-                  className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-bold transition sm:min-h-8 ${
-                    selected
-                      ? "border-[#E58422] bg-[#FFF3E7] text-[#B96916]"
-                      : "border-transparent bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-[#19244E]"
-                  }`}
+                  className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-bold transition sm:min-h-8 ${selected ? "border-[#E58422] bg-[#FFF3E7] text-[#B96916]" : "border-transparent bg-gray-100 text-gray-600 hover:bg-orange-50 hover:text-[#19244E]"}`}
                 >
-                  {entry.color && (
-                    <span
-                      aria-hidden="true"
-                      style={{ backgroundColor: entry.color }}
-                      className="h-2 w-2 rounded-full"
-                    />
-                  )}
+                  {entry.color && <span aria-hidden="true" style={{ backgroundColor: entry.color }} className="h-2 w-2 rounded-full" />}
                   {entry.name}
-                  {entry.status === "draft" && (
-                    <span className="text-[10px] font-semibold text-gray-400">
-                      Draft
-                    </span>
+                  {entry.status === "draft" && <span className="text-[10px] font-semibold text-gray-400">Draft</span>}
+                  {entry.id && !entry.showOnMenu && entry.status !== "draft" && (
+                    <span className="text-[10px] font-semibold text-gray-400">Hidden</span>
                   )}
-                  <span className="rounded-md bg-white px-1.5 py-0.5 text-[10px] text-gray-500">
-                    {count}
-                  </span>
+                  <span className="rounded-md bg-white px-1.5 py-0.5 text-[10px] text-gray-500">{count}</span>
                 </button>
               );
             })}
@@ -482,15 +497,12 @@ export default function MenuManagement() {
             </div>
 
             <ul className="divide-y divide-gray-100">
-              {pageItems.map((item) => {
+              {pager.pageItems.map((item) => {
                 const itemAvailable = storeOnline && item.available;
                 const menuOpen = openMenuId === item.id;
 
                 return (
-                  <li
-                    key={item.id}
-                    className={`flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-6 lg:grid lg:gap-4 ${catalogColumns}`}
-                  >
+                  <li key={item.id} className={`flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-6 lg:grid lg:gap-4 ${catalogColumns}`}>
                     <button
                       type="button"
                       onClick={() => editItem(item)}
@@ -498,41 +510,31 @@ export default function MenuManagement() {
                       className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-orange-100 bg-[#FFF3E7] text-[#B96916]">
-                        {item.image ? (
-                          <img src={item.image} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <ImageIcon size={18} />
-                        )}
+                        {item.image ? <img src={item.image} alt="" className="h-full w-full object-cover" /> : <ImageIcon size={18} />}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-extrabold text-[#19244E]">
-                          {item.name}
-                        </span>
+                        <span className="block truncate text-sm font-extrabold text-[#19244E]">{item.name}</span>
                         <span className="mt-0.5 block truncate text-xs text-gray-500 lg:hidden">
-                          {item.category} · ₱{item.price.toFixed(2)}
+                          {item.category || "No category"} · ₱{item.price.toFixed(2)}
                         </span>
-                        <span className="mt-0.5 hidden truncate text-xs text-gray-500 lg:block">
-                          {item.description}
-                        </span>
+                        <span className="mt-0.5 hidden truncate text-xs text-gray-500 lg:block">{item.description}</span>
                       </span>
                     </button>
 
                     <div className="hidden lg:block">
                       <span className="inline-flex rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-bold text-gray-600">
-                        {item.category}
+                        {item.category || "No category"}
                       </span>
                     </div>
 
-                    <span className="hidden font-black text-[#19244E] lg:block">
-                      ₱{item.price.toFixed(2)}
-                    </span>
+                    <span className="hidden font-black text-[#19244E] lg:block">₱{item.price.toFixed(2)}</span>
 
                     <div className="flex shrink-0 items-center justify-center">
                       <ToggleSwitch
                         checked={item.available}
                         disabled={!storeOnline}
                         label={`Toggle ${item.name} availability`}
-                        onToggle={() => toggleItem(item.id)}
+                        onToggle={() => toggleItem(item)}
                       />
                       <span className={`hidden w-16 text-[10px] font-bold lg:block ${itemAvailable ? "text-emerald-700" : "text-gray-500"}`}>
                         {itemAvailable ? "Available" : "Unavailable"}
@@ -540,22 +542,10 @@ export default function MenuManagement() {
                     </div>
 
                     <div className="hidden justify-end gap-2 sm:flex">
-                      <button
-                        type="button"
-                        title={`Edit ${item.name}`}
-                        aria-label={`Edit ${item.name}`}
-                        onClick={() => editItem(item)}
-                        className="rounded-xl border border-gray-200 p-2 text-gray-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-[#E58422]"
-                      >
+                      <button type="button" title={`Edit ${item.name}`} aria-label={`Edit ${item.name}`} onClick={() => editItem(item)} className="rounded-xl border border-gray-200 p-2 text-gray-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-[#E58422]">
                         <Pencil size={16} />
                       </button>
-                      <button
-                        type="button"
-                        title={`Delete ${item.name}`}
-                        aria-label={`Delete ${item.name}`}
-                        onClick={() => deleteItem(item)}
-                        className="rounded-xl border border-gray-200 p-2 text-gray-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                      >
+                      <button type="button" title={`Delete ${item.name}`} aria-label={`Delete ${item.name}`} onClick={() => askDelete(item)} className="rounded-xl border border-gray-200 p-2 text-gray-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -573,25 +563,12 @@ export default function MenuManagement() {
                       </button>
 
                       {menuOpen && (
-                        <div
-                          role="menu"
-                          className="absolute right-0 top-full z-20 mt-1 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg"
-                        >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => editItem(item)}
-                            className="flex min-h-11 w-full items-center gap-3 px-4 text-sm font-bold text-[#19244E] hover:bg-orange-50"
-                          >
+                        <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-40 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                          <button type="button" role="menuitem" onClick={() => editItem(item)} className="flex min-h-11 w-full items-center gap-3 px-4 text-sm font-bold text-[#19244E] hover:bg-orange-50">
                             <Pencil size={16} className="text-[#E58422]" />
                             Edit
                           </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => deleteItem(item)}
-                            className="flex min-h-11 w-full items-center gap-3 px-4 text-sm font-bold text-rose-600 hover:bg-rose-50"
-                          >
+                          <button type="button" role="menuitem" onClick={() => askDelete(item)} className="flex min-h-11 w-full items-center gap-3 px-4 text-sm font-bold text-rose-600 hover:bg-rose-50">
                             <Trash2 size={16} />
                             Delete
                           </button>
@@ -608,7 +585,9 @@ export default function MenuManagement() {
             title={menuItems.length === 0 ? "The menu board is empty." : "Nothing on this shelf."}
             message={
               menuItems.length === 0
-                ? "Add your first drink or dish with Add New Item."
+                ? categories.length === 0
+                  ? "Start with Add Category, then add your first drink or dish."
+                  : "Add your first drink or dish with Add New Item."
                 : "No items match this search or category."
             }
             action={
@@ -616,8 +595,8 @@ export default function MenuManagement() {
                 <button
                   type="button"
                   onClick={() => {
-                    changeSearch("");
-                    changeCategory(ALL_ITEMS);
+                    setSearch("");
+                    setCategory(ALL_ITEMS);
                   }}
                   className="min-h-11 rounded-xl bg-[#19244E] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#253570]"
                 >

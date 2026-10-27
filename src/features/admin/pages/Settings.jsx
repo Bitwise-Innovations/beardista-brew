@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import {
   MapPin,
@@ -8,27 +8,33 @@ import {
   CheckCircle2,
   Download,
   QrCode,
+  AlertTriangle,
 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import DataCard from "../components/DataCard";
+import BrewingLoader from "../components/BrewingLoader";
+import EmptyState from "../components/EmptyState";
+import { useStoreSettings, useUpdateStoreSetting } from "../../../backend/hooks/useContent";
 
-const defaults = {
+const STORE_KEY = "store_info";
+const WIFI_KEY = "wifi";
+
+const defaultStore = {
   storeName: "Beardista Brew",
   tagline: "Brewing Good Times, One Cup at a Time",
-  address: "Caloocan City, Philippines",
+  address: "2837 Yellowbell St., Area C, Brgy. 174 Camarin, Caloocan City",
   openingTime: "4:00 PM",
   closingTime: "12:00 AM",
-  wifiSSID: "Beardista_Guest",
-  wifiPass: "guestpassword123",
 };
+
+const defaultWifi = { ssid: "", password: "" };
 
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-[#19244E] outline-none transition focus:border-[#E58422] focus:ring-2 focus:ring-orange-100";
 
-const labelClass =
-  "mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500";
+const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500";
 
-// The PNG is drawn at 640px and shown at 160px, so the download stays sharp when printed.
+// The PNG is drawn at 640px and shown at 144px, so the download stays sharp when printed.
 const QR_DOWNLOAD_SIZE = 640;
 
 // Characters with a special meaning in the Wi-Fi QR format need a backslash in front.
@@ -54,21 +60,101 @@ function Field({ id, label, value, onChange, placeholder, type = "text" }) {
 }
 
 export default function Settings() {
-  const [form, setForm] = useState(defaults);
-  const [saved, setSaved] = useState(defaults);
+  const settingsQuery = useStoreSettings();
+  const updateSetting = useUpdateStoreSetting();
+
+  // Filled once the saved settings arrive, so typing is never overwritten by a refetch.
+  const [form, setForm] = useState(null);
+  const [saved, setSaved] = useState(null);
   const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
   const [showWifi, setShowWifi] = useState(false);
   const qrRef = useRef(null);
+
+  useEffect(() => {
+    if (!settingsQuery.data || form) return;
+
+    const find = (key) => settingsQuery.data.find((setting) => setting.key === key)?.value ?? {};
+    const store = { ...defaultStore, ...find(STORE_KEY) };
+    const wifi = { ...defaultWifi, ...find(WIFI_KEY) };
+    const initial = {
+      storeName: store.storeName,
+      tagline: store.tagline,
+      address: store.address,
+      openingTime: store.openingTime,
+      closingTime: store.closingTime,
+      wifiSSID: wifi.ssid,
+      wifiPass: wifi.password,
+    };
+
+    setForm(initial);
+    setSaved(initial);
+  }, [settingsQuery.data, form]);
+
+  if (settingsQuery.isPending || (!form && !settingsQuery.isError)) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <BrewingLoader label="Loading settings..." />
+      </div>
+    );
+  }
+
+  if (settingsQuery.isError) {
+    return (
+      <EmptyState
+        title="We couldn't load the settings."
+        message="Check your connection and try again."
+        action={
+          <button
+            type="button"
+            onClick={() => settingsQuery.refetch()}
+            className="min-h-11 rounded-xl bg-[#19244E] px-4 text-xs font-bold text-white hover:bg-[#253570]"
+          >
+            Try again
+          </button>
+        }
+      />
+    );
+  }
 
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     setNotice("");
+    setError("");
   };
 
-  const saveSettings = (event) => {
+  const saveSettings = async (event) => {
     event.preventDefault();
-    setSaved({ ...form });
-    setNotice("Settings saved in this preview session only.");
+    setNotice("");
+    setError("");
+
+    if (!form.storeName.trim()) {
+      setError("Store name is required.");
+      return;
+    }
+
+    try {
+      await Promise.all([
+        updateSetting.mutateAsync({
+          key: STORE_KEY,
+          value: {
+            storeName: form.storeName.trim(),
+            tagline: form.tagline.trim(),
+            address: form.address.trim(),
+            openingTime: form.openingTime.trim(),
+            closingTime: form.closingTime.trim(),
+          },
+        }),
+        updateSetting.mutateAsync({
+          key: WIFI_KEY,
+          value: { ssid: form.wifiSSID.trim(), password: form.wifiPass },
+        }),
+      ]);
+      setSaved({ ...form });
+      setNotice("Settings saved.");
+    } catch {
+      setError("We couldn't save the settings. Please try again.");
+    }
   };
 
   const downloadQr = () => {
@@ -82,6 +168,7 @@ export default function Settings() {
     link.click();
   };
 
+  const saving = updateSetting.isPending;
   const hasChanges = JSON.stringify(form) !== JSON.stringify(saved);
   const hasNetwork = form.wifiSSID.trim() !== "";
   const qrText = wifiQrText(form.wifiSSID, form.wifiPass);
@@ -101,9 +188,16 @@ export default function Settings() {
             <button
               type="submit"
               form="settings-form"
-              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#E58422] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#d47414]"
+              disabled={saving || !hasChanges}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#E58422] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#d47414] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Save size={17} /> Save All Settings
+              {saving ? (
+                <BrewingLoader tone="light" size={24} label="Saving..." />
+              ) : (
+                <>
+                  <Save size={17} /> Save All Settings
+                </>
+              )}
             </button>
             <p className="text-xs text-gray-400">
               {hasChanges ? "You have unsaved changes." : "All changes saved."}
@@ -115,7 +209,14 @@ export default function Settings() {
       {notice && (
         <div role="status" className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
           <CheckCircle2 size={19} className="shrink-0" />
-          <p><strong>Preview saved.</strong> {notice}</p>
+          <p className="font-semibold">{notice}</p>
+        </div>
+      )}
+
+      {error && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          <AlertTriangle size={19} className="shrink-0" />
+          <p className="font-semibold">{error}</p>
         </div>
       )}
 
@@ -130,7 +231,9 @@ export default function Settings() {
             <Field id="store-tagline" label="Tagline / Concept" value={form.tagline} onChange={(v) => update("tagline", v)} />
           </div>
           <div>
-            <label htmlFor="store-address" className={labelClass}><span className="inline-flex items-center gap-2"><MapPin size={14} /> Branch Street Address</span></label>
+            <label htmlFor="store-address" className={labelClass}>
+              <span className="inline-flex items-center gap-2"><MapPin size={14} /> Branch Street Address</span>
+            </label>
             <input id="store-address" value={form.address} onChange={(e) => update("address", e.target.value)} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -139,10 +242,7 @@ export default function Settings() {
           </div>
         </DataCard>
 
-        <DataCard
-          title="Guest Wi-Fi"
-          description="Customers scan the QR code to join the guest network."
-        >
+        <DataCard title="Guest Wi-Fi" description="Customers scan the QR code to join the guest network.">
           <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
             <div className="space-y-4">
               <Field id="wifi-ssid" label="Network Name (SSID)" value={form.wifiSSID} onChange={(v) => update("wifiSSID", v)} />
@@ -154,6 +254,7 @@ export default function Settings() {
                     type={showWifi ? "text" : "password"}
                     value={form.wifiPass}
                     onChange={(e) => update("wifiPass", e.target.value)}
+                    autoComplete="off"
                     className={`${inputClass} pr-12 font-mono`}
                   />
                   <button
@@ -166,6 +267,9 @@ export default function Settings() {
                     {showWifi ? <EyeOff size={17} /> : <Eye size={17} />}
                   </button>
                 </div>
+                <p className="mt-1.5 text-[11px] text-gray-400">
+                  This is shown on the public website, so only use the guest network password.
+                </p>
               </div>
               <div className="min-w-0 rounded-xl bg-gray-50 px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">QR code text</p>
@@ -174,15 +278,10 @@ export default function Settings() {
             </div>
 
             <div className="flex flex-col items-center gap-2 md:w-44">
-              <p className="self-start text-xs font-bold uppercase tracking-wider text-gray-500 md:self-center">
-                Live Preview
-              </p>
+              <p className="self-start text-xs font-bold uppercase tracking-wider text-gray-500 md:self-center">Live Preview</p>
 
               {hasNetwork ? (
-                <div
-                  ref={qrRef}
-                  className="rounded-2xl border border-[#EAE5DF] bg-white p-2"
-                >
+                <div ref={qrRef} className="rounded-2xl border border-[#EAE5DF] bg-white p-2">
                   <QRCodeCanvas
                     value={qrText}
                     size={QR_DOWNLOAD_SIZE}
