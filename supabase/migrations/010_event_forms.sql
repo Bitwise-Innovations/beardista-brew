@@ -118,3 +118,105 @@ create policy "manage registration answers as admin" on public.registration_answ
         and profiles.role in ('owner', 'admin')
     )
   );
+
+alter table public.event_registrations
+  add column if not exists user_id uuid;
+
+alter table public.event_registrations
+  drop constraint if exists event_registrations_status_check;
+
+alter table public.event_registrations
+  add constraint event_registrations_status_check
+    check (status in ('pending', 'registered', 'confirmed', 'waitlisted', 'cancelled'));
+
+create or replace function public.create_event_registration(
+  p_event_id bigint,
+  p_user_id uuid,
+  p_participant_type_id uuid,
+  p_answers jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_capacity integer;
+  v_registration_count integer;
+  v_status text;
+  v_user_email text;
+  v_full_name text;
+  v_registration public.event_registrations%rowtype;
+  v_answer jsonb;
+begin
+  select participant_types.capacity
+  into v_capacity
+  from public.participant_types
+  where participant_types.id = p_participant_type_id
+    and participant_types.event_id = p_event_id
+  for update;
+
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Participant type not found for event';
+  end if;
+
+  select profiles.email, profiles.full_name
+  into v_user_email, v_full_name
+  from public.profiles
+  where profiles.id = p_user_id;
+
+  if not found or v_user_email is null or v_full_name is null then
+    raise exception using errcode = 'P0002', message = 'User profile with email and full name not found';
+  end if;
+
+  select count(*)::integer
+  into v_registration_count
+  from public.event_registrations
+  where event_registrations.participant_type_id = p_participant_type_id
+    and event_registrations.status <> 'cancelled';
+
+  v_status := case
+    when v_registration_count >= v_capacity then 'waitlisted'
+    else 'registered'
+  end;
+
+  insert into public.event_registrations (
+    event_id,
+    user_id,
+    participant_type_id,
+    user_email,
+    full_name,
+    status
+  )
+  values (
+    p_event_id,
+    p_user_id,
+    p_participant_type_id,
+    v_user_email,
+    v_full_name,
+    v_status
+  )
+  returning * into v_registration;
+
+  for v_answer in
+    select value
+    from jsonb_array_elements(p_answers) as answers(value)
+  loop
+    insert into public.registration_answers (
+      registration_id,
+      question_id,
+      answer
+    )
+    values (
+      v_registration.id,
+      (v_answer ->> 'question_id')::uuid,
+      v_answer ->> 'answer'
+    );
+  end loop;
+
+  return to_jsonb(v_registration);
+end;
+$$;
+
+revoke all on function public.create_event_registration(bigint, uuid, uuid, jsonb) from public;
+grant execute on function public.create_event_registration(bigint, uuid, uuid, jsonb) to service_role;
