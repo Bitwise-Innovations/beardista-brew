@@ -3,7 +3,7 @@
 // They keep /admin from crashing. Each one gets replaced by real Supabase data
 // (hooks) one page at a time. Menu data is the first one to move.
 
-import { CATEGORY_PILLS, initialMenuData } from '../features/admin/pages/MenuManagement.jsx';
+import { CATEGORY_PILLS, initialMenuData } from '../features/old_admin//pages/MenuManagement.jsx';
 
 // --- Menu (reuses the sample items that already live in MenuManagement.jsx) ---
 export const initialMenuItems = initialMenuData;

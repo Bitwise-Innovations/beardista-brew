@@ -5,7 +5,7 @@ import BrewingLoader, { SteamingCup } from "./BrewingLoader";
 // The .lottie file is looked up in AdminRebuild/assets first, then src/testing/assets (where it is now).
 // import.meta.glob returns nothing for a missing file, so the app never crashes; the cup is shown instead.
 const animationFiles = import.meta.glob(
-  ["../assets/barista-animation.lottie", "../../assets/barista-animation.lottie"],
+  ["../assets/barista-animation.lottie"],
   { eager: true, query: "?url", import: "default" }
 );
 const ANIMATION_URL = Object.values(animationFiles)[0] ?? null;
