@@ -123,3 +123,7 @@ export async function incrementItemViewCount(id) {
   if (error) throw error;
   return data;
 }
+export async function recordMenuItemView(itemId) {
+  const { error } = await supabase.rpc("record_menu_item_view", { p_item_id: itemId });
+  if (error) throw error;
+}

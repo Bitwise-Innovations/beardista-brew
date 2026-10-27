@@ -83,10 +83,10 @@ export function mapMenuItemToDb(item) {
 // ItemDetailsModal expect.
 // ---------------------------------------------------------------------------
 
-export function mapMenuItemForDisplay(item, categoryNameById = {}) {
+export function mapMenuItemForDisplay(item, categoryNameById = {}, storeOnline = true) {
   if (!item) return item;
 
-  const isAvailable = Boolean(item.isAvailable ?? item.is_available);
+  const isAvailable = storeOnline && Boolean(item.isAvailable ?? item.is_available);
   const categoryId = item.categoryId ?? item.category_id;
 
   return {
@@ -96,19 +96,19 @@ export function mapMenuItemForDisplay(item, categoryNameById = {}) {
     category: categoryNameById[categoryId] ?? "",
     description: item.description ?? "",
     price: `₱${Number(item.price)}`, // shown to customers, e.g. "₱140"
-    priceValue: Number(item.price), // plain number
+    priceValue: Number(item.price),
     image: item.image_url || fallbackImg,
     isAvailable,
-    status: isAvailable ? "AVAILABLE" : "SOLD OUT",
+    status: isAvailable ? "AVAILABLE" : storeOnline ? "SOLD OUT" : "PAUSED",
     isFavorite: Boolean(item.isFavorite ?? item.is_favorite),
     viewCount: item.viewCount ?? item.view_count ?? 0,
-    // Optional columns; undefined lets ItemDetailsModal use its own defaults.
-    flavorProfile: item.flavor_profile ?? undefined,
+    flavorProfile: item.flavor_profile || undefined,
     contains: item.tags?.length ? item.tags.join(", ").toUpperCase() : undefined,
-    details: item.details ?? undefined,
+    temperatures: Array.isArray(item.temperatures) ? item.temperatures : [],
+    calories: item.calories ?? null,
+    addOns: Array.isArray(item.add_ons) ? item.add_ons : [],
   };
 }
-
 export function mapCategoryForDisplay(category) {
   if (!category) return category;
 
@@ -128,21 +128,29 @@ function categoryLookup(categories) {
 }
 
 // All items, ready to show. Returns [] when there is nothing yet.
-export function buildMenuItems(items, categories) {
+// All items, ready to show. Returns [] when there is nothing yet.
+export function buildMenuItems(items, categories, storeOnline = true) {
   if (!Array.isArray(items)) return [];
   const byId = categoryLookup(categories);
-  return items.map((item) => mapMenuItemForDisplay(item, byId));
+  return items.map((item) => mapMenuItemForDisplay(item, byId, storeOnline));
 }
 
+// Home page "Customer Favorites": items marked favorite, else the most viewed,
+// else the first available items. Never sample data.
+export function buildFavorites(items, categories, limit = 3) {
+  const available = buildMenuItems(items, categories).filter((item) => item.isAvailable);
+  const marked = available.filter((item) => item.isFavorite);
+  if (marked.length > 0) return marked.slice(0, limit);
+
+  const viewed = available.filter((item) => item.viewCount > 0).sort((a, b) => b.viewCount - a.viewCount);
+  if (viewed.length > 0) return viewed.slice(0, limit);
+
+  return available.slice(0, limit);
+}
 // Categories, ready to show. Returns [] when there is nothing yet.
 export function buildCategories(categories) {
   if (!Array.isArray(categories)) return [];
   return categories.map(mapCategoryForDisplay);
 }
 
-// Home page "Customer Favorites" (max `limit`, available items only).
-export function buildFavorites(items, categories, limit = 3) {
-  return buildMenuItems(items, categories)
-    .filter((item) => item.isFavorite && item.isAvailable)
-    .slice(0, limit);
-}
+

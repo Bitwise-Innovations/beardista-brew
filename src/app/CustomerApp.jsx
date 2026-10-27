@@ -1,8 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
-// --- CUSTOMER DATA ---
-
 
 // --- CUSTOMER COMPONENTS ---
 import { Navbar } from '../components/Navbar.jsx';
@@ -18,7 +15,6 @@ import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
 import {
-  customerFavoritesData,
   whatsBrewingData,
   whyChooseData,
   blendDetailsData,
@@ -26,7 +22,7 @@ import {
 } from '../data/customerData.js';
 
 // --- LIVE DATA (Supabase) ---
-import { useMenuItems, useCategories } from '../backend/hooks/useMenu';
+import { useMenuItems, useCategories, useRecordMenuView } from '../backend/hooks/useMenu';
 import { buildFavorites } from '../backend/mappers/menuMapper';
 import { useEvents } from '../backend/hooks/useEvents';
 import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
@@ -37,30 +33,26 @@ import { SurveyModal } from '../features/landing/SurveyModal.jsx';
 import { EventDetailsModal } from '../features/landing/EventDetailsModal.jsx';
 import { StoryModal } from '../features/landing/StoryModal.jsx';
 
-
 const PAGE_PATHS = { home: '/', menu: '/menu', story: '/our-story' };
 
 /**
  * CustomerApp: the public-facing customer digital menu.
  */
 export const CustomerApp = ({ onOpenAdminLogin }) => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
   const location = useLocation();
-  
 
   const currentPage =
     location.pathname.startsWith('/menu') ? 'menu' :
     location.pathname.startsWith('/our-story') ? 'story' : 'home';
 
-  // Customer Favorites: real data from Supabase. While loading, on error,
-  // or if no item is marked favorite, the sample data is shown instead.
+  // Customer Favorites: real items only (favorites, else most viewed, else first on the menu).
   const { data: menuItems } = useMenuItems({ availableOnly: true });
   const { data: categories } = useCategories({ activeOnly: true });
-  const liveFavorites = buildFavorites(menuItems, categories);
-  const favorites = liveFavorites.length > 0 ? liveFavorites : customerFavoritesData;
+  const favorites = buildFavorites(menuItems, categories);
 
   // What's Brewing event card: real event from Supabase. While loading, on error,
-  // or when there is no running event, the sample event is shown instead.
+  // or when there is no running event, the sample event is shown instead (replaced in Step 32).
   const { data: events } = useEvents();
   const brewingData = {
     ...whatsBrewingData,
@@ -71,6 +63,17 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   const [isEventOpen, setIsEventOpen] = useState(false);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
+
+  // Count one view per menu item per visit (sample items have text ids and are skipped).
+  const recordView = useRecordMenuView();
+  const viewedIds = useRef(new Set());
+  const openItem = (item) => {
+    setSelectedItem(item);
+    if (typeof item?.id === 'number' && !viewedIds.current.has(item.id)) {
+      viewedIds.current.add(item.id);
+      recordView.mutate(item.id);
+    }
+  };
 
   const handleExploreMenu = () => {
     navigate('/menu');
@@ -84,7 +87,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       category: 'Seasonal Feature',
       description: whatsBrewingData.mustTry.description,
       image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDcnRgPZvSAeWjuil3h6B2n2OeNmjdePD_56mCf8tbN27R8djWpb41wqtMsGBB33MYEq7MYoc_XEHazaMV5djUC4aj1tO7WGri2VDOrQCpwy9kfyTW4pIYbtD8y59TdVLEfgT2Ki2fRvmGUqh5cRCsPjEqBERczKKEpig7TaOjLdLq44MoClCswni8iPvsyuD3vwdh1i2k-mEzX34CSvsakhJcRy4hB49x3HF7RP_GpqHHKZ443mMC5eogBmmiYaFNL2_G9B2LFwlduvQ',
-      details: whatsBrewingData.mustTry.details
+      details: whatsBrewingData.mustTry.details,
     });
   };
 
@@ -98,8 +101,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   };
 
   return (
-    <div className="min-h-dvh overflow-x-hidden bg-[#FFF3E7] text-[#111111] flex flex-col antialiased ...">
-
+    <div className="min-h-dvh overflow-x-hidden bg-[#FFF3E7] text-[#111111] flex flex-col antialiased">
       {currentPage === 'story' ? (
         <OurStory
           onNavigate={handleNavigate}
@@ -112,10 +114,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onNavigate={handleNavigate}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
-          <MenuPage
-            onNavigate={handleNavigate}
-            onSelectItem={(item) => setSelectedItem(item)}
-          />
+          <MenuPage onNavigate={handleNavigate} onSelectItem={openItem} />
           <Footer onNavigate={handleNavigate} />
         </>
       ) : (
@@ -126,10 +125,9 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <Hero onExploreMenu={handleExploreMenu} />
-          <CustomerFavorites
-            items={favorites}
-            onViewDetails={(item) => setSelectedItem(item)}
-          />
+          {favorites.length > 0 && (
+            <CustomerFavorites items={favorites} onViewDetails={openItem} />
+          )}
           <WhatsBrewing
             data={brewingData}
             onRegister={() => setIsEventOpen(true)}

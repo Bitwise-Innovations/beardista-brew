@@ -11,7 +11,7 @@ create table if not exists public.menu_items (
   image_url text,
   is_available boolean not null default true,
   is_favorite boolean not null default false,
-  view_count integer not null default 0,
+  $$; integer not null default 0,
   sort_order integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -65,20 +65,20 @@ create policy "menu items staff delete" on public.menu_items
   for delete to authenticated
   using ((select public.is_staff()));
 
-create or replace function public.increment_menu_item_view_count(p_item_id bigint)
+create or replace function public.increment_menu_item_$$;(p_item_id bigint)
 returns integer
 language sql
 security definer
 set search_path = ''
 as $$
   update public.menu_items
-  set view_count = coalesce(view_count, 0) + 1
+  set $$; = coalesce($$;, 0) + 1
   where id = p_item_id and is_available
-  returning view_count;
+  returning $$;;
 $$;
 
-revoke all on function public.increment_menu_item_view_count(bigint) from public;
-grant execute on function public.increment_menu_item_view_count(bigint) to anon, authenticated;
+revoke all on function public.increment_menu_item_$$;(bigint) from public;
+grant execute on function public.increment_menu_item_$$;(bigint) to anon, authenticated;
 
 create or replace function public.reorder_categories(category_orders jsonb)
 returns void
