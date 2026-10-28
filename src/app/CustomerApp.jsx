@@ -185,4 +185,4 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       <StoryModal isOpen={isStoryOpen} onClose={() => setIsStoryOpen(false)} />
     </div>
   );
-};
+};          

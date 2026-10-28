@@ -91,3 +91,45 @@ export function buildFeaturedAnnouncement(announcements) {
     linkTarget: first.link_target ?? null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Customer site: store info and social links from Settings, with fallbacks.
+// ---------------------------------------------------------------------------
+const SITE_FALLBACK = {
+  storeName: "Beardista Brew",
+  address: "2837 Yellowbell St., Area C, Brgy. 174 Camarin, Caloocan City",
+  openingTime: "4:00 PM",
+  closingTime: "12:00 AM",
+  social: {
+    facebook: "https://www.facebook.com/Beardistabrew",
+    instagram: "https://www.instagram.com/beardistabrew",
+    tiktok: "https://www.tiktok.com/@beardista",
+  },
+};
+
+const filled = (value, fallback) => (typeof value === "string" && value.trim() ? value.trim() : fallback);
+
+export function buildSiteInfo(settings) {
+  const find = (key) => (Array.isArray(settings) ? settings.find((setting) => setting.key === key)?.value : null);
+  const store = find("store_info") ?? {};
+  const savedSocial = find("social_links");
+
+  const openingTime = filled(store.openingTime, SITE_FALLBACK.openingTime);
+  const closingTime = filled(store.closingTime, SITE_FALLBACK.closingTime);
+
+  // Once Social Links is saved, an empty link means "hide this button".
+  const social = savedSocial
+    ? {
+        facebook: filled(savedSocial.facebook, ""),
+        instagram: filled(savedSocial.instagram, ""),
+        tiktok: filled(savedSocial.tiktok, ""),
+      }
+    : SITE_FALLBACK.social;
+
+  return {
+    storeName: filled(store.storeName, SITE_FALLBACK.storeName),
+    address: filled(store.address, SITE_FALLBACK.address),
+    hours: `${openingTime} - ${closingTime}`,
+    social,
+  };
+}
