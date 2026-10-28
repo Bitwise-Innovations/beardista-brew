@@ -96,4 +96,4 @@ export const faqData = [
   { id: 'faq-3', question: 'Can we bring outside food or drinks?', answer: 'TODO: replace with your outside food and drinks policy.' },
   { id: 'faq-4', question: 'What payment methods do you accept?', answer: 'TODO: replace with your accepted payment methods.' },
 ];
-];
+
