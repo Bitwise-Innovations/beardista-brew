@@ -14,18 +14,16 @@ import { BeardistaBlend } from '../features/landing/BeardistaBlend.jsx';
 import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
-import {
-  whatsBrewingData,
-  whyChooseData,
-  blendDetailsData,
-  reviewsData,
-} from '../data/customerData.js';
+
+// Sample content still used until Steps 31-32 connect it.
+import { whatsBrewingData, whyChooseData, blendDetailsData } from '../data/customerData.js';
 
 // --- LIVE DATA (Supabase) ---
 import { useMenuItems, useCategories, useRecordMenuView } from '../backend/hooks/useMenu';
 import { buildFavorites } from '../backend/mappers/menuMapper';
 import { useEvents } from '../backend/hooks/useEvents';
 import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
+import { useCustomerVoice } from '../backend/hooks/useCustomerFeedback';
 
 // --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
@@ -51,8 +49,11 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
   const { data: categories } = useCategories({ activeOnly: true });
   const favorites = buildFavorites(menuItems, categories);
 
-  // What's Brewing event card: real event from Supabase. While loading, on error,
-  // or when there is no running event, the sample event is shown instead (replaced in Step 32).
+  // Customer Voice: responses staff marked Live in Analytics.
+  const { data: customerVoice = [] } = useCustomerVoice();
+
+  // What's Brewing: real next open event (null shows "Nothing scheduled yet").
+  // The Must Try card still uses sample data until Step 32.
   const { data: events } = useEvents();
   const brewingData = {
     ...whatsBrewingData,
@@ -137,7 +138,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
           <WhyChooseUs pillars={whyChooseData} />
           <BeardistaBlend details={blendDetailsData} />
           <CustomerVoice
-            reviews={reviewsData}
+            reviews={customerVoice}
             onOpenSurvey={() => setIsSurveyOpen(true)}
           />
           <StayConnected />

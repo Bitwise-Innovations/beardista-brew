@@ -114,3 +114,25 @@ export async function saveSurveyQuestionsAdmin(surveyId, questions) {
   const { error } = await query;
   if (error) throw error;
 }
+// ---------------------------------------------------------------------------
+// Customer: survey and Customer Voice
+// ---------------------------------------------------------------------------
+
+export async function submitSurveyAnswers(answers) {
+  const { data, error } = await supabase.rpc("submit_survey_response", { p_answers: answers });
+  if (error) {
+    // The database sends friendly messages for rate limits and missing ratings.
+    throw new Error(
+      error.code === "55000" || error.code === "22023"
+        ? error.message
+        : "We couldn't send your feedback. Please try again."
+    );
+  }
+  return data;
+}
+
+export async function getCustomerVoice(limit = 6) {
+  const { data, error } = await supabase.rpc("get_customer_voice", { p_limit: limit });
+  if (error) throw error;
+  return data;
+}
