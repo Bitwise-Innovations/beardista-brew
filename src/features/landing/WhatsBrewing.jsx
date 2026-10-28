@@ -7,11 +7,17 @@ const ArrowIcon = () => (
   </svg>
 );
 
+const cardClass =
+  'relative bg-[#FFF3E7] rounded-2xl flex flex-col text-left overflow-hidden shadow-xl border border-white/10 transition-all duration-300';
+
 /**
- * WhatsBrewing: the featured event (live from Supabase) and the Must Try card.
+ * WhatsBrewing: the featured event and the top announcement, both live from Supabase.
+ * @param {Object|null} props.event - Featured event card, or null
+ * @param {Object|null} props.feature - Top announcement card, or null
+ * @param {Function} props.onRegister - Opens the event sign-up
+ * @param {Function} props.onFeatureClick - Follows the announcement's link
  */
-export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
-  const event = data.event;
+export const WhatsBrewing = ({ event, feature, onRegister, onFeatureClick }) => {
   const when = formatEventWhen(event?.startTime);
 
   return (
@@ -21,12 +27,10 @@ export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
           WHAT'S BREWING
         </h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-          {/* Card 1: Featured event */}
-          <div className="relative bg-[#FFF3E7] rounded-2xl flex flex-col text-left overflow-hidden shadow-xl border border-white/10 hover:border-[#D97706]/40 transition-all duration-300">
-            {event?.image && (
-              <img src={event.image} alt="" className="h-40 md:h-48 w-full object-cover" loading="lazy" />
-            )}
+        <div className={`grid grid-cols-1 gap-8 md:gap-12 ${feature ? 'lg:grid-cols-2' : 'max-w-2xl mx-auto'}`}>
+          {/* Card 1: featured event */}
+          <div className={`${cardClass} hover:border-[#D97706]/40`}>
+            {event?.image && <img src={event.image} alt="" className="h-40 md:h-48 w-full object-cover" loading="lazy" />}
             <div className="p-8 md:p-12 flex flex-col justify-between items-start grow">
               {event ? (
                 <>
@@ -39,9 +43,7 @@ export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
                       </p>
                     )}
                     {event.description && (
-                      <p className="text-sm md:text-base text-[#19244E]/80 max-w-sm leading-relaxed line-clamp-4">
-                        {event.description}
-                      </p>
+                      <p className="text-sm md:text-base text-[#19244E]/80 max-w-sm leading-relaxed line-clamp-4">{event.description}</p>
                     )}
                   </div>
                   <div className="mt-8">
@@ -66,23 +68,34 @@ export const WhatsBrewing = ({ data, onRegister, onViewTsamporado }) => {
             </div>
           </div>
 
-          {/* Card 2: Must Try (connected in Step 32) */}
-          <div className="relative bg-[#FFF3E7] p-8 md:p-12 rounded-2xl flex flex-col justify-between items-start text-left overflow-hidden shadow-xl border border-white/10 hover:border-[#EA580C]/40 transition-all duration-300">
-            <div className="space-y-4">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#EA580C] block">{data.mustTry.tag}</span>
-              <h3 className="text-2xl md:text-3xl font-extrabold text-[#19244E]">{data.mustTry.title}</h3>
-              <p className="text-sm md:text-base text-[#19244E]/80 max-w-sm leading-relaxed">{data.mustTry.description}</p>
+          {/* Card 2: top announcement */}
+          {feature && (
+            <div className={`${cardClass} hover:border-[#EA580C]/40`}>
+              {feature.image && <img src={feature.image} alt="" className="h-40 md:h-48 w-full object-cover" loading="lazy" />}
+              <div className="p-8 md:p-12 flex flex-col justify-between items-start grow">
+                <div className="space-y-4">
+                  {feature.tag && (
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#EA580C] block">{feature.tag}</span>
+                  )}
+                  <h3 className="text-2xl md:text-3xl font-extrabold text-[#19244E]">{feature.title}</h3>
+                  {feature.description && (
+                    <p className="text-sm md:text-base text-[#19244E]/80 max-w-sm leading-relaxed">{feature.description}</p>
+                  )}
+                </div>
+                {feature.buttonLabel && (
+                  <div className="mt-8">
+                    <button
+                      onClick={onFeatureClick}
+                      className="inline-flex min-h-11 items-center px-6 py-3.5 bg-[#EA580C] hover:bg-[#c2410c] text-white text-xs font-bold uppercase tracking-wider rounded-sm shadow-md group cursor-pointer"
+                    >
+                      <span>{feature.buttonLabel}</span>
+                      <ArrowIcon />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="mt-8">
-              <button
-                onClick={onViewTsamporado}
-                className="inline-flex min-h-11 items-center px-6 py-3.5 bg-[#EA580C] hover:bg-[#c2410c] text-white text-xs font-bold uppercase tracking-wider rounded-sm shadow-md group cursor-pointer"
-              >
-                <span>{data.mustTry.buttonLabel}</span>
-                <ArrowIcon />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

@@ -62,3 +62,32 @@ export function mapStoreSettingFromDb(setting) {
     updatedAt: setting.updated_at,
   };
 }
+// ---------------------------------------------------------------------------
+// Customer home page: the second "What's Brewing" card.
+// Takes the first live announcement (already filtered and ordered by the database).
+// ---------------------------------------------------------------------------
+const ANNOUNCEMENT_LABELS = {
+  new_event: "NEW EVENT",
+  new_drink: "NEW DRINK",
+  must_try: "MUST TRY",
+  notice: "NOTICE",
+};
+
+export function buildFeaturedAnnouncement(announcements) {
+  const first = Array.isArray(announcements) ? announcements[0] : null;
+  if (!first) return null;
+
+  return {
+    id: first.id,
+    tag:
+      first.type === "custom"
+        ? (first.custom_label || "").toUpperCase()
+        : ANNOUNCEMENT_LABELS[first.type] ?? "WHAT'S NEW",
+    title: first.title,
+    description: first.body ?? "",
+    image: first.image_url || null,
+    buttonLabel: first.link_type && first.link_type !== "none" ? first.button_label : null,
+    linkType: first.link_type ?? "none",
+    linkTarget: first.link_target ?? null,
+  };
+}

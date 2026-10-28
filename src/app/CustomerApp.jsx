@@ -15,15 +15,17 @@ import { CustomerVoice } from '../features/landing/CustomerVoice.jsx';
 import { StayConnected } from '../features/landing/StayConnected.jsx';
 import MenuPage from '../features/menu/MenuPage.jsx';
 
-// Sample content still used until Steps 31-32 connect it.
-import { whatsBrewingData, whyChooseData, blendDetailsData } from '../data/customerData.js';
+// Fixed marketing content (no admin fields for these).
+import { whyChooseData, blendDetailsData } from '../data/customerData.js';
 
 // --- LIVE DATA (Supabase) ---
 import { useMenuItems, useCategories, useRecordMenuView } from '../backend/hooks/useMenu';
-import { buildFavorites } from '../backend/mappers/menuMapper';
+import { buildFavorites, buildMenuItems } from '../backend/mappers/menuMapper';
 import { useEvents } from '../backend/hooks/useEvents';
 import { buildFeaturedEvent } from '../backend/mappers/eventMapper';
 import { useCustomerVoice } from '../backend/hooks/useCustomerFeedback';
+import { useAnnouncements, useStoreSettings } from '../backend/hooks/useContent';
+import { buildFeaturedAnnouncement } from '../backend/mappers/contentMapper';
 
 // --- CUSTOMER MODALS ---
 import { ItemDetailsModal } from '../features/menu/ItemDetailsModal.jsx';
@@ -44,28 +46,39 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     location.pathname.startsWith('/menu') ? 'menu' :
     location.pathname.startsWith('/our-story') ? 'story' : 'home';
 
-  // Customer Favorites: real items only (favorites, else most viewed, else first on the menu).
+  // Menu data: favorites on the home page, and lookups for announcement links.
   const { data: menuItems } = useMenuItems({ availableOnly: true });
   const { data: categories } = useCategories({ activeOnly: true });
   const favorites = buildFavorites(menuItems, categories);
+  const menuDisplayItems = buildMenuItems(menuItems, categories);
 
   // Customer Voice: responses staff marked Live in Analytics.
   const { data: customerVoice = [] } = useCustomerVoice();
 
-  // What's Brewing: real next open event (null shows "Nothing scheduled yet").
-  // The Must Try card still uses sample data until Step 32.
+  // The Beardista Blend: from Content Management → Coffee Specs, else the sample cards.
+  const { data: settings } = useStoreSettings();
+  const blend = settings?.find((setting) => setting.key === 'blend')?.value;
+  const blendCards = blend
+    ? [
+        { label: 'Roast Profile', value: blend.roast },
+        { label: 'Flavor Notes', value: blend.notes },
+        { label: 'Origin', value: blend.origin },
+      ].filter((card) => card.value?.trim())
+    : [];
+  const blendDetails = blendCards.length > 0 ? blendCards : blendDetailsData;
+
+  // What's Brewing: next open event and the top live announcement.
   const { data: events } = useEvents();
-  const brewingData = {
-    ...whatsBrewingData,
-    event: buildFeaturedEvent(events),
-  };
+  const featuredEvent = buildFeaturedEvent(events);
+  const { data: announcements } = useAnnouncements();
+  const feature = buildFeaturedAnnouncement(announcements);
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
-  const [isEventOpen, setIsEventOpen] = useState(false);
+  const [modalEvent, setModalEvent] = useState(null);
   const [isStoryOpen, setIsStoryOpen] = useState(false);
 
-  // Count one view per menu item per visit (sample items have text ids and are skipped).
+  // Count one view per menu item per visit.
   const recordView = useRecordMenuView();
   const viewedIds = useRef(new Set());
   const openItem = (item) => {
@@ -76,22 +89,6 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     }
   };
 
-  const handleExploreMenu = () => {
-    navigate('/menu');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleViewTsamporado = () => {
-    setSelectedItem({
-      id: 'tsamporado',
-      name: whatsBrewingData.mustTry.title,
-      category: 'Seasonal Feature',
-      description: whatsBrewingData.mustTry.description,
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDcnRgPZvSAeWjuil3h6B2n2OeNmjdePD_56mCf8tbN27R8djWpb41wqtMsGBB33MYEq7MYoc_XEHazaMV5djUC4aj1tO7WGri2VDOrQCpwy9kfyTW4pIYbtD8y59TdVLEfgT2Ki2fRvmGUqh5cRCsPjEqBERczKKEpig7TaOjLdLq44MoClCswni8iPvsyuD3vwdh1i2k-mEzX34CSvsakhJcRy4hB49x3HF7RP_GpqHHKZ443mMC5eogBmmiYaFNL2_G9B2LFwlduvQ',
-      details: whatsBrewingData.mustTry.details,
-    });
-  };
-
   const handleNavigate = (page) => {
     if (page === 'admin-login' || page === 'admin') {
       if (onOpenAdminLogin) onOpenAdminLogin();
@@ -99,6 +96,37 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     }
     navigate(PAGE_PATHS[page] ?? '/');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleExploreMenu = () => handleNavigate('menu');
+
+  // Follows the link set on the announcement in Content Management.
+  const handleFeatureClick = () => {
+    if (!feature) return;
+    const target = feature.linkTarget;
+
+    if (feature.linkType === 'menu_item') {
+      const item = menuDisplayItems.find((entry) => String(entry.id) === String(target));
+      if (item) openItem(item);
+      else handleNavigate('menu');
+      return;
+    }
+
+    if (feature.linkType === 'event') {
+      const linked = (events ?? []).find((entry) => String(entry.id) === String(target));
+      const card = linked ? buildFeaturedEvent([linked]) : null;
+      setModalEvent(card ?? featuredEvent);
+      return;
+    }
+
+    if (feature.linkType === 'url' && target) {
+      if (target.startsWith('/')) {
+        navigate(target);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.open(target, '_blank', 'noopener,noreferrer');
+      }
+    }
   };
 
   return (
@@ -130,13 +158,14 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
             <CustomerFavorites items={favorites} onViewDetails={openItem} />
           )}
           <WhatsBrewing
-            data={brewingData}
-            onRegister={() => setIsEventOpen(true)}
-            onViewTsamporado={handleViewTsamporado}
+            event={featuredEvent}
+            feature={feature}
+            onRegister={() => setModalEvent(featuredEvent)}
+            onFeatureClick={handleFeatureClick}
           />
           <OurStorySection onReadMore={() => handleNavigate('story')} />
           <WhyChooseUs pillars={whyChooseData} />
-          <BeardistaBlend details={blendDetailsData} />
+          <BeardistaBlend details={blendDetails} />
           <CustomerVoice
             reviews={customerVoice}
             onOpenSurvey={() => setIsSurveyOpen(true)}
@@ -149,9 +178,9 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
       <ItemDetailsModal item={selectedItem} onClose={() => setSelectedItem(null)} />
       <SurveyModal isOpen={isSurveyOpen} onClose={() => setIsSurveyOpen(false)} />
       <EventDetailsModal
-        isOpen={isEventOpen}
-        onClose={() => setIsEventOpen(false)}
-        eventData={brewingData.event}
+        isOpen={Boolean(modalEvent)}
+        onClose={() => setModalEvent(null)}
+        eventData={modalEvent}
       />
       <StoryModal isOpen={isStoryOpen} onClose={() => setIsStoryOpen(false)} />
     </div>
