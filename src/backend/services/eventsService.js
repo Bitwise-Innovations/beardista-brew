@@ -1,6 +1,10 @@
 import { supabase } from "../lib/supabase";
 import { mapEventFromDb, mapEventToDb } from "../mappers/eventMapper";
 
+// ---------------------------------------------------------------------------
+// Customer: events and sign-up
+// ---------------------------------------------------------------------------
+
 export async function getEvents({ includeDraft = false } = {}) {
   let query = supabase.from("events").select("*").order("start_time");
   if (!includeDraft) query = query.neq("status", "draft");
@@ -19,29 +23,72 @@ export async function getEventById(id, { includeDraft = false } = {}) {
   return mapEventFromDb(data);
 }
 
-export async function registerForEvent(registration) {
-  const { data, error } = await supabase.functions.invoke("event-code", {
-    body: {
-      action: "register",
-      eventId: registration.eventId,
-      email: registration.email ?? registration.userEmail,
-      fullName: registration.fullName,
-      phone: registration.phone ?? null,
-    },
-  });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
+// Calls the event-code Edge Function. On failure, throws an Error whose .details
+// holds the function's JSON reply (attemptsLeft, locked, expired, registrationId).
+async function callEventCode(body) {
+  const { data, error } = await supabase.functions.invoke("event-code", { body });
+  if (error) {
+    let details = {};
+    try {
+      details = (await error.context?.json()) ?? {};
+    } catch {
+      // Keep the default message.
+    }
+    const failure = new Error(details.error || "Event registration is unavailable right now.");
+    failure.details = details;
+    throw failure;
+  }
   return data;
 }
 
-export async function verifyEventCode(registrationId, code) {
-  const { data, error } = await supabase.functions.invoke("event-code", {
-    body: { action: "verify", registrationId, code },
-  });
-  if (error) throw error;
-  if (data?.error) throw new Error(data.error);
-  return data;
+export const registerForEvent = ({ eventId, participantTypeId, email, fullName, answers }) =>
+  callEventCode({ action: "register", eventId, participantTypeId, email, fullName, answers });
+
+export const verifyEventCode = (registrationId, code) =>
+  callEventCode({ action: "verify", registrationId, code });
+
+export const resendEventCode = (registrationId) =>
+  callEventCode({ action: "resend", registrationId });
+
+// Participant types (with confirmed counts) and their questions, for the public form.
+export async function getEventForm(eventId) {
+  const [types, spots] = await Promise.all([
+    supabase
+      .from("participant_types")
+      .select("id, name, capacity, opens_at, closes_at, sort_order")
+      .eq("event_id", eventId)
+      .order("sort_order")
+      .order("id"),
+    supabase.rpc("get_event_type_spots", { p_event_id: eventId }),
+  ]);
+  if (types.error) throw types.error;
+  if (spots.error) throw spots.error;
+
+  const typeIds = types.data.map((type) => type.id);
+  let questions = [];
+  if (typeIds.length > 0) {
+    const result = await supabase
+      .from("form_questions")
+      .select("id, participant_type_id, label, type, required, help_text, options, sort_order")
+      .in("participant_type_id", typeIds)
+      .order("sort_order")
+      .order("id");
+    if (result.error) throw result.error;
+    questions = result.data;
+  }
+
+  const confirmedById = Object.fromEntries(
+    spots.data.map((spot) => [spot.participant_type_id, spot.confirmed])
+  );
+  return {
+    types: types.data.map((type) => ({ ...type, confirmed: confirmedById[type.id] ?? 0 })),
+    questions,
+  };
 }
+
+// ---------------------------------------------------------------------------
+// Old admin helpers (kept for anything still using them)
+// ---------------------------------------------------------------------------
 
 export async function createEvent(event) {
   const { data, error } = await supabase
@@ -66,5 +113,178 @@ export async function updateEvent(id, updates) {
 
 export async function deleteEvent(id) {
   const { error } = await supabase.from("events").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// Admin: Events & Throwdown Manager
+// ---------------------------------------------------------------------------
+
+function throwFirstError(results) {
+  const failed = results.find((result) => result.error);
+  if (failed) throw failed.error;
+}
+
+// Everything the Events page needs, in one call. Verification codes are never selected.
+export async function getAdminEventsData() {
+  const results = await Promise.all([
+    supabase.from("events").select("*").order("event_date", { nullsFirst: false }),
+    supabase.from("participant_types").select("*").order("sort_order").order("id"),
+    supabase.from("form_questions").select("*").order("sort_order").order("id"),
+    supabase
+      .from("event_registrations")
+      .select("id, event_id, participant_type_id, full_name, user_email, status, is_verified, verification_sent_at, created_at")
+      .order("created_at", { ascending: false }),
+    supabase.from("registration_answers").select("id, registration_id, question_id, value"),
+  ]);
+  throwFirstError(results);
+
+  const [events, types, questions, registrations, answers] = results.map((result) => result.data);
+  return { events, types, questions, registrations, answers };
+}
+
+export async function createEventRow(payload) {
+  const { data, error } = await supabase
+    .from("events")
+    .insert({ ...payload, status: "draft" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateEventRow(id, payload) {
+  const { data, error } = await supabase
+    .from("events")
+    .update(payload)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// Copies the event with its participant types and questions (no registrations) as a draft.
+export async function duplicateEventRow(sourceId) {
+  const { data: source, error } = await supabase.from("events").select("*").eq("id", sourceId).single();
+  if (error) throw error;
+
+  const { id: _id, created_at: _created, is_active: _active, ...rest } = source;
+  const { data: copy, error: copyError } = await supabase
+    .from("events")
+    .insert({ ...rest, title: `${source.title} (copy)`, status: "draft" })
+    .select()
+    .single();
+  if (copyError) throw copyError;
+
+  const { data: types, error: typesError } = await supabase
+    .from("participant_types")
+    .select("*")
+    .eq("event_id", sourceId);
+  if (typesError) throw typesError;
+  if (types.length === 0) return copy;
+
+  const { data: questions, error: questionsError } = await supabase
+    .from("form_questions")
+    .select("*")
+    .in("participant_type_id", types.map((type) => type.id));
+  if (questionsError) throw questionsError;
+
+  for (const type of types) {
+    const { data: newType, error: typeError } = await supabase
+      .from("participant_types")
+      .insert({
+        event_id: copy.id,
+        name: type.name,
+        capacity: type.capacity,
+        opens_at: type.opens_at,
+        closes_at: type.closes_at,
+        sort_order: type.sort_order,
+      })
+      .select("id")
+      .single();
+    if (typeError) throw typeError;
+
+    const typeQuestions = questions
+      .filter((question) => question.participant_type_id === type.id)
+      .map(({ id: _qid, created_at: _qcreated, ...question }) => ({
+        ...question,
+        participant_type_id: newType.id,
+      }));
+    if (typeQuestions.length > 0) {
+      const { error: insertError } = await supabase.from("form_questions").insert(typeQuestions);
+      if (insertError) throw insertError;
+    }
+  }
+
+  return copy;
+}
+
+// Saves one event's participant types and questions.
+// Rows whose id is not in existing*Ids are new (they only have a temporary id in the browser).
+export async function saveEventForms({ eventId, types, questions, existingTypeIds, existingQuestionIds }) {
+  const typeIdMap = new Map();
+
+  for (const [index, type] of types.entries()) {
+    const row = {
+      event_id: eventId,
+      name: type.name.trim(),
+      capacity: type.capacity,
+      opens_at: type.opens_at || null,
+      closes_at: type.closes_at || null,
+      sort_order: index,
+    };
+
+    if (existingTypeIds.includes(type.id)) {
+      const { error } = await supabase.from("participant_types").update(row).eq("id", type.id);
+      if (error) throw error;
+      typeIdMap.set(type.id, type.id);
+    } else {
+      const { data, error } = await supabase.from("participant_types").insert(row).select("id").single();
+      if (error) throw error;
+      typeIdMap.set(type.id, data.id);
+    }
+  }
+
+  const keptQuestionIds = [];
+  for (const question of questions) {
+    const typeId = typeIdMap.get(question.participant_type_id);
+    if (!typeId) continue;
+
+    const row = {
+      participant_type_id: typeId,
+      label: question.label,
+      type: question.type,
+      required: question.required,
+      help_text: question.help_text || null,
+      options: question.options,
+      sort_order: question.sort_order,
+    };
+
+    if (existingQuestionIds.includes(question.id)) {
+      const { error } = await supabase.from("form_questions").update(row).eq("id", question.id);
+      if (error) throw error;
+      keptQuestionIds.push(question.id);
+    } else {
+      const { error } = await supabase.from("form_questions").insert(row);
+      if (error) throw error;
+    }
+  }
+
+  const removedQuestionIds = existingQuestionIds.filter((id) => !keptQuestionIds.includes(id));
+  if (removedQuestionIds.length > 0) {
+    const { error } = await supabase.from("form_questions").delete().in("id", removedQuestionIds);
+    if (error) throw error;
+  }
+
+  const removedTypeIds = existingTypeIds.filter((id) => !typeIdMap.has(id));
+  if (removedTypeIds.length > 0) {
+    const { error } = await supabase.from("participant_types").delete().in("id", removedTypeIds);
+    if (error) throw error;
+  }
+}
+
+export async function updateRegistrationStatus(id, status) {
+  const { error } = await supabase.from("event_registrations").update({ status }).eq("id", id);
   if (error) throw error;
 }

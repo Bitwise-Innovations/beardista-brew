@@ -1,15 +1,5 @@
-﻿import { useEffect, useRef, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
-import {
-  MapPin,
-  Eye,
-  EyeOff,
-  Save,
-  CheckCircle2,
-  Download,
-  QrCode,
-  AlertTriangle,
-} from "lucide-react";
+﻿import { useEffect, useState } from "react";
+import { MapPin, Save, CheckCircle2, AlertTriangle, Link2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import DataCard from "../components/DataCard";
 import BrewingLoader from "../components/BrewingLoader";
@@ -17,7 +7,7 @@ import EmptyState from "../components/EmptyState";
 import { useStoreSettings, useUpdateStoreSetting } from "../../../backend/hooks/useContent";
 
 const STORE_KEY = "store_info";
-const WIFI_KEY = "wifi";
+const SOCIAL_KEY = "social_links";
 
 const defaultStore = {
   storeName: "Beardista Brew",
@@ -27,23 +17,26 @@ const defaultStore = {
   closingTime: "12:00 AM",
 };
 
-const defaultWifi = { ssid: "", password: "" };
+const defaultSocial = {
+  facebook: "https://www.facebook.com/Beardistabrew",
+  instagram: "https://www.instagram.com/beardistabrew",
+  tiktok: "",
+};
+
+const socialFields = [
+  { key: "facebook", label: "Facebook", placeholder: "https://www.facebook.com/..." },
+  { key: "instagram", label: "Instagram", placeholder: "https://www.instagram.com/..." },
+  { key: "tiktok", label: "TikTok", placeholder: "https://www.tiktok.com/@..." },
+];
+
+const URL_PATTERN = /^https:\/\/\S+$/i;
 
 const inputClass =
   "w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-[#19244E] outline-none transition focus:border-[#E58422] focus:ring-2 focus:ring-orange-100";
 
 const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-wider text-gray-500";
 
-// The PNG is drawn at 640px and shown at 144px, so the download stays sharp when printed.
-const QR_DOWNLOAD_SIZE = 640;
-
-// Characters with a special meaning in the Wi-Fi QR format need a backslash in front.
-const escapeWifi = (value) => value.replace(/([\\;,:"])/g, "\\$1");
-
-const wifiQrText = (ssid, password) =>
-  `WIFI:T:WPA;S:${escapeWifi(ssid)};P:${escapeWifi(password)};;`;
-
-function Field({ id, label, value, onChange, placeholder, type = "text" }) {
+function Field({ id, label, value, onChange, placeholder, type = "text", error }) {
   return (
     <div className="min-w-0">
       <label htmlFor={id} className={labelClass}>{label}</label>
@@ -53,8 +46,13 @@ function Field({ id, label, value, onChange, placeholder, type = "text" }) {
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className={inputClass}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={`${inputClass} ${error ? "border-rose-400" : ""}`}
       />
+      {error && (
+        <p id={`${id}-error`} className="mt-1.5 text-xs font-semibold text-rose-600">{error}</p>
+      )}
     </div>
   );
 }
@@ -66,38 +64,23 @@ export default function Settings() {
   // Filled once the saved settings arrive, so typing is never overwritten by a refetch.
   const [form, setForm] = useState(null);
   const [saved, setSaved] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
-  const [showWifi, setShowWifi] = useState(false);
-  const qrRef = useRef(null);
 
   useEffect(() => {
     if (!settingsQuery.data || form) return;
 
     const find = (key) => settingsQuery.data.find((setting) => setting.key === key)?.value ?? {};
-    const store = { ...defaultStore, ...find(STORE_KEY) };
-    const wifi = { ...defaultWifi, ...find(WIFI_KEY) };
     const initial = {
-      storeName: store.storeName,
-      tagline: store.tagline,
-      address: store.address,
-      openingTime: store.openingTime,
-      closingTime: store.closingTime,
-      wifiSSID: wifi.ssid,
-      wifiPass: wifi.password,
+      ...defaultStore,
+      ...find(STORE_KEY),
+      social: { ...defaultSocial, ...find(SOCIAL_KEY) },
     };
 
     setForm(initial);
     setSaved(initial);
   }, [settingsQuery.data, form]);
-
-  if (settingsQuery.isPending || (!form && !settingsQuery.isError)) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <BrewingLoader label="Loading settings..." />
-      </div>
-    );
-  }
 
   if (settingsQuery.isError) {
     return (
@@ -117,19 +100,44 @@ export default function Settings() {
     );
   }
 
-  const update = (key, value) => {
-    setForm((current) => ({ ...current, [key]: value }));
+  if (!form) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <BrewingLoader label="Loading settings..." />
+      </div>
+    );
+  }
+
+  const clearMessages = () => {
     setNotice("");
     setError("");
   };
 
+  const update = (key, value) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => ({ ...current, [key]: "" }));
+    clearMessages();
+  };
+
+  const updateSocial = (key, value) => {
+    setForm((current) => ({ ...current, social: { ...current.social, [key]: value } }));
+    setFieldErrors((current) => ({ ...current, [key]: "" }));
+    clearMessages();
+  };
+
   const saveSettings = async (event) => {
     event.preventDefault();
-    setNotice("");
-    setError("");
+    clearMessages();
 
-    if (!form.storeName.trim()) {
-      setError("Store name is required.");
+    const nextErrors = { storeName: form.storeName.trim() ? "" : "Store name is required." };
+    socialFields.forEach(({ key, label }) => {
+      const value = form.social[key].trim();
+      nextErrors[key] =
+        value && !URL_PATTERN.test(value) ? `${label} link must start with https://` : "";
+    });
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setFieldErrors(nextErrors);
       return;
     }
 
@@ -146,43 +154,27 @@ export default function Settings() {
           },
         }),
         updateSetting.mutateAsync({
-          key: WIFI_KEY,
-          value: { ssid: form.wifiSSID.trim(), password: form.wifiPass },
+          key: SOCIAL_KEY,
+          value: Object.fromEntries(
+            socialFields.map(({ key }) => [key, form.social[key].trim()])
+          ),
         }),
       ]);
-      setSaved({ ...form });
+      setSaved(form);
       setNotice("Settings saved.");
     } catch {
       setError("We couldn't save the settings. Please try again.");
     }
   };
 
-  const downloadQr = () => {
-    const canvas = qrRef.current?.querySelector("canvas");
-    if (!canvas) return;
-
-    const link = document.createElement("a");
-    const name = form.wifiSSID.trim().replace(/[^\w-]+/g, "_") || "wifi";
-    link.download = `${name}-wifi-qr.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  };
-
   const saving = updateSetting.isPending;
   const hasChanges = JSON.stringify(form) !== JSON.stringify(saved);
-  const hasNetwork = form.wifiSSID.trim() !== "";
-  const qrText = wifiQrText(form.wifiSSID, form.wifiPass);
-  // Shown under the fields; the password stays hidden unless the eye toggle is on.
-  const qrPreviewText = wifiQrText(
-    form.wifiSSID,
-    showWifi ? form.wifiPass : "•".repeat(Math.min(form.wifiPass.length, 12))
-  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="System & Store Settings"
-        description="Configure store information and guest Wi-Fi details."
+        description="Configure store information and the social links shown to customers."
         actions={
           <div className="flex flex-col gap-1 sm:items-end">
             <button
@@ -220,14 +212,20 @@ export default function Settings() {
         </div>
       )}
 
-      <form id="settings-form" onSubmit={saveSettings} className="space-y-6">
+      <form id="settings-form" onSubmit={saveSettings} noValidate className="space-y-6">
         <DataCard
           title="Café Brand & Physical Location"
           description="Store identity and operating hours shown to customers."
           bodyClassName="space-y-4 p-4 sm:p-6"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="store-name" label="Store Name" value={form.storeName} onChange={(v) => update("storeName", v)} />
+            <Field
+              id="store-name"
+              label="Store Name"
+              value={form.storeName}
+              onChange={(v) => update("storeName", v)}
+              error={fieldErrors.storeName}
+            />
             <Field id="store-tagline" label="Tagline / Concept" value={form.tagline} onChange={(v) => update("tagline", v)} />
           </div>
           <div>
@@ -242,75 +240,38 @@ export default function Settings() {
           </div>
         </DataCard>
 
-        <DataCard title="Guest Wi-Fi" description="Customers scan the QR code to join the guest network.">
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="space-y-4">
-              <Field id="wifi-ssid" label="Network Name (SSID)" value={form.wifiSSID} onChange={(v) => update("wifiSSID", v)} />
-              <div>
-                <label htmlFor="wifi-password" className={labelClass}>Wi-Fi Password</label>
-                <div className="relative">
-                  <input
-                    id="wifi-password"
-                    type={showWifi ? "text" : "password"}
-                    value={form.wifiPass}
-                    onChange={(e) => update("wifiPass", e.target.value)}
-                    autoComplete="off"
-                    className={`${inputClass} pr-12 font-mono`}
-                  />
-                  <button
-                    type="button"
-                    aria-label={showWifi ? "Hide Wi-Fi password" : "Show Wi-Fi password"}
-                    aria-pressed={showWifi}
-                    onClick={() => setShowWifi(!showWifi)}
-                    className="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-200"
-                  >
-                    {showWifi ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </div>
-                <p className="mt-1.5 text-[11px] text-gray-400">
-                  This is shown on the public website, so only use the guest network password.
-                </p>
+        <DataCard
+          title="Social Links"
+          description="Shown in the Stay Connected section and the footer. Leave a field empty to hide that button."
+          bodyClassName="space-y-4 p-4 sm:p-6"
+        >
+          {socialFields.map(({ key, label, placeholder }) => (
+            <div key={key} className="flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <Field
+                  id={`social-${key}`}
+                  label={label}
+                  type="url"
+                  value={form.social[key]}
+                  onChange={(v) => updateSocial(key, v)}
+                  placeholder={placeholder}
+                  error={fieldErrors[key]}
+                />
               </div>
-              <div className="min-w-0 rounded-xl bg-gray-50 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">QR code text</p>
-                <p className="mt-0.5 break-all font-mono text-xs text-[#19244E]">{qrPreviewText}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-2 md:w-44">
-              <p className="self-start text-xs font-bold uppercase tracking-wider text-gray-500 md:self-center">Live Preview</p>
-
-              {hasNetwork ? (
-                <div ref={qrRef} className="rounded-2xl border border-[#EAE5DF] bg-white p-2">
-                  <QRCodeCanvas
-                    value={qrText}
-                    size={QR_DOWNLOAD_SIZE}
-                    marginSize={2}
-                    level="M"
-                    fgColor="#19244E"
-                    bgColor="#FFFFFF"
-                    title={`Wi-Fi QR code for ${form.wifiSSID}`}
-                    style={{ width: 144, height: 144 }}
-                  />
-                </div>
-              ) : (
-                <div className="flex aspect-square w-40 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-orange-200 bg-[#FFF3E7]/50 p-3 text-center">
-                  <QrCode size={32} className="text-[#E58422]" />
-                  <p className="text-xs font-bold text-[#19244E]">QR appears here</p>
-                  <p className="text-[10px] text-gray-500">Enter a network name first.</p>
-                </div>
+              {URL_PATTERN.test(form.social[key].trim()) && !fieldErrors[key] && (
+                <a
+                  href={form.social[key].trim()}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${label} link in a new tab`}
+                  title="Test link"
+                  className="mb-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition hover:border-orange-200 hover:bg-orange-50 hover:text-[#E58422]"
+                >
+                  <Link2 size={17} />
+                </a>
               )}
-
-              <button
-                type="button"
-                onClick={downloadQr}
-                disabled={!hasNetwork}
-                className="inline-flex min-h-11 w-40 items-center justify-center gap-2 rounded-xl bg-[#19244E] px-4 text-xs font-bold text-white transition hover:bg-[#29386f] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Download size={15} /> Download PNG
-              </button>
             </div>
-          </div>
+          ))}
         </DataCard>
       </form>
     </div>

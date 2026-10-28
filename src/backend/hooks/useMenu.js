@@ -9,8 +9,9 @@ import {
   fetchCategories,
   fetchMenuItems,
   incrementItemViewCount,
+  recordMenuItemView,
   reorderCategories,
-  uploadMenuItemImage
+  uploadMenuItemImage,
 } from "../services/menuService";
 
 export const menuQueryKeys = {
@@ -114,4 +115,8 @@ export function useIncrementItemViewCount() {
 }
 export function useUploadMenuImage() {
   return useMutation({ mutationFn: (file) => uploadMenuItemImage(file) });
+}
+
+export function useRecordMenuView() {
+  return useMutation({ mutationFn: recordMenuItemView });
 }

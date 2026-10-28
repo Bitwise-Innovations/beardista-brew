@@ -6,7 +6,7 @@ import EmptyState from "../EmptyState";
 import ModalWrapper, { ToggleSwitch } from "../ModalWrapper";
 import { cancelButtonClass } from "../formStyles";
 import { usePagination } from "../usePageSize";
-import { formatDate, nextId } from "../events/eventUtils";
+import { formatDate } from "../events/eventUtils";
 import AnnouncementFormModal from "./AnnouncementFormModal";
 import {
   LIVE_SLOTS,
@@ -40,7 +40,16 @@ function StatusChip({ announcement, live }) {
 }
 
 // Controls the "What's Brewing" cards on the customer landing page.
-export default function AnnouncementsTab({ announcements, setAnnouncements, events, menuItems, notify }) {
+// Every change is handed to the page, which saves it to Supabase.
+export default function AnnouncementsTab({
+  announcements,
+  events,
+  menuItems,
+  onSave,
+  onToggle,
+  onDelete,
+  onReorder,
+}) {
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [armedId, setArmedId] = useState(null);
@@ -51,15 +60,13 @@ export default function AnnouncementsTab({ announcements, setAnnouncements, even
   const live = liveIds(announcements);
   const pager = usePagination(sorted);
 
-  // Saves the new order as sort_order 1, 2, 3…
   const moveTo = (fromId, toIndex) => {
     const ordered = [...sorted];
     const fromIndex = ordered.findIndex((entry) => entry.id === fromId);
     if (fromIndex === -1 || toIndex < 0 || toIndex >= ordered.length) return;
     const [moved] = ordered.splice(fromIndex, 1);
     ordered.splice(toIndex, 0, moved);
-    const position = new Map(ordered.map((entry, index) => [entry.id, index + 1]));
-    setAnnouncements((all) => all.map((entry) => ({ ...entry, sort_order: position.get(entry.id) })));
+    onReorder(ordered.map((entry) => entry.id));
   };
 
   const clearDrag = () => {
@@ -89,38 +96,14 @@ export default function AnnouncementsTab({ announcements, setAnnouncements, even
     onDragEnd: clearDrag,
   });
 
-  const toggleVisible = (announcement) => {
-    setAnnouncements((all) =>
-      all.map((entry) => (entry.id === announcement.id ? { ...entry, is_visible: !entry.is_visible } : entry))
-    );
-    notify(`${announcement.title} is now ${announcement.is_visible ? "hidden" : "visible"}.`);
+  const save = async (values) => {
+    const ok = await onSave(values, editing.announcement);
+    if (ok) setEditing(null);
   };
 
-  const save = (values) => {
-    if (editing.announcement) {
-      setAnnouncements((all) =>
-        all.map((entry) => (entry.id === editing.announcement.id ? { ...entry, ...values } : entry))
-      );
-      notify(`${values.title} was updated.`);
-    } else {
-      setAnnouncements((all) => [
-        ...all,
-        {
-          ...values,
-          id: nextId(all),
-          is_visible: true,
-          sort_order: Math.max(0, ...all.map((entry) => entry.sort_order)) + 1,
-        },
-      ]);
-      notify(`${values.title} was added. Drag it to the top to put it live.`);
-    }
-    setEditing(null);
-  };
-
-  const remove = () => {
-    setAnnouncements((all) => all.filter((entry) => entry.id !== deleteTarget.id));
-    notify(`${deleteTarget.title} was deleted.`);
-    setDeleteTarget(null);
+  const remove = async () => {
+    const ok = await onDelete(deleteTarget);
+    if (ok) setDeleteTarget(null);
   };
 
   return (
@@ -210,7 +193,7 @@ export default function AnnouncementsTab({ announcements, setAnnouncements, even
                       <ToggleSwitch
                         checked={announcement.is_visible}
                         label={`${announcement.is_visible ? "Hide" : "Show"} ${announcement.title} on the landing page`}
-                        onToggle={() => toggleVisible(announcement)}
+                        onToggle={() => onToggle(announcement)}
                       />
                       <button type="button" onClick={() => setEditing({ announcement })} aria-label={`Edit ${announcement.title}`} title="Edit" className={iconButtonClass}>
                         <Pencil size={16} />
@@ -252,9 +235,7 @@ export default function AnnouncementsTab({ announcements, setAnnouncements, even
           dismissible
         >
           <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
-            <button type="button" onClick={() => setDeleteTarget(null)} className={cancelButtonClass}>
-              Keep
-            </button>
+            <button type="button" onClick={() => setDeleteTarget(null)} className={cancelButtonClass}>Keep</button>
             <button
               type="button"
               onClick={remove}

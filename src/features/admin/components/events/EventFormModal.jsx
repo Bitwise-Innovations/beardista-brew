@@ -32,8 +32,9 @@ export default function EventFormModal({ event, onCancel, onSave }) {
     setErrors((current) => ({ ...current, [field]: "" }));
   };
 
-  const pickCover = (file) => {
-    if (file?.type.startsWith("image/")) update("cover_image_url", URL.createObjectURL(file));
+   const pickCover = (file) => {
+    if (!file?.type.startsWith("image/")) return;
+    setForm((current) => ({ ...current, cover_image_url: URL.createObjectURL(file), coverFile: file }));
   };
 
   const submit = (submitEvent) => {
@@ -231,7 +232,7 @@ export default function EventFormModal({ event, onCancel, onSave }) {
             {form.cover_image_url && (
               <button
                 type="button"
-                onClick={() => update("cover_image_url", "")}
+              onClick={() => setForm((current) => ({ ...current, cover_image_url: "", coverFile: null }))}
                 className="min-h-11 self-start rounded-xl border border-gray-200 px-4 text-xs font-bold text-rose-600 hover:bg-rose-50"
               >
                 Remove image

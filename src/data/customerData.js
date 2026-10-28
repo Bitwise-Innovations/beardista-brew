@@ -74,10 +74,3 @@ export const reviewsData = [
   { id: 'rev-2', quote: 'Sample review. Replace with a real customer quote.', author: 'Sample Customer' },
   { id: 'rev-3', quote: 'Sample review. Replace with a real customer quote.', author: 'Sample Customer' },
 ];
-
-// StayConnected: { ssid, password }
-// Note: this ends up in the browser. Only put the public cafe WiFi here.
-export const wifiData = {
-  ssid: 'Sample-WiFi-Name',
-  password: 'sample-password',
-};
