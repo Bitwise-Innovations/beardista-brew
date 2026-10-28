@@ -16,12 +16,12 @@ export function toAdminCategory(row) {
   };
 }
 
+// No slug here: the database creates it from the name.
 export function toCategoryPayload(values, iconUrl) {
   return {
-    name: values.name,
-    slug: values.slug,
+    name: values.name.trim(),
     sort_order: values.priority,
-    description: values.description || null,
+    description: values.description?.trim() || null,
     group_name: values.group || null,
     color: values.color,
     badge: values.badge || null,
@@ -43,7 +43,6 @@ export function toAdminItem(row, categoryNameById = {}) {
     image: row.image_url ?? "",
     temperatures: row.temperatures ?? [],
     flavor: row.flavor_profile ?? "",
-    calories: row.calories ?? null,
     tags: row.tags ?? [],
     addOns: row.add_ons ?? [],
   };
@@ -52,14 +51,13 @@ export function toAdminItem(row, categoryNameById = {}) {
 export function toItemPayload(values, categoryId, imageUrl) {
   return {
     category_id: categoryId,
-    name: values.name,
-    description: values.description || null,
+    name: values.name.trim(),
+    description: values.description?.trim() || null,
     price: values.price,
     image_url: imageUrl || null,
     is_available: values.available,
     temperatures: values.temperatures,
-    flavor_profile: values.flavor || null,
-    calories: values.calories,
+    flavor_profile: values.flavor?.trim() || null,
     tags: values.tags,
     add_ons: values.addOns,
   };
@@ -67,3 +65,14 @@ export function toItemPayload(values, categoryId, imageUrl) {
 
 // A preview URL (blob:) only exists in this browser tab, so it is never saved.
 export const savedUrl = (url) => (url && !url.startsWith("blob:") ? url : null);
+
+// Turns a database error into a friendly message for the category form.
+export function categoryErrorMessage(error, name) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`;
+  if (error?.code === "23505" || /categories_name_unique/i.test(text)) {
+    return `A category named "${name}" already exists.`;
+  }
+  if (/categories_name_length/i.test(text)) return "Category name must be 1 to 40 characters.";
+  if (/categories_description_length/i.test(text)) return "Description must be 200 characters or fewer.";
+  return `We couldn't save ${name}. Please try again.`;
+}

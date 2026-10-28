@@ -53,7 +53,7 @@ export const StayConnected = () => {
 
   return (
     <section className="py-16 md:py-24 bg-[#FFF3E7] px-6 md:px-16 border-t border-black/10" id="connect-section">
-      <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-3xl md:text-5xl font-extrabold text-[#19244E] mb-12 uppercase tracking-widest">STAY CONNECTED.</h2>
 
         <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl flex flex-col items-center border border-black/10">
@@ -78,4 +78,4 @@ export const StayConnected = () => {
       </div>
     </section>
   );
-};b
+};

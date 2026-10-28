@@ -6,7 +6,7 @@ import React, { useEffect } from 'react';
  */
 export const ItemDetailsModal = ({ item, onClose }) => {
   useEffect(() => {
-    if (!item) return;
+    if (!item) return undefined;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onClose();
     };
@@ -75,15 +75,20 @@ export const ItemDetailsModal = ({ item, onClose }) => {
 
           <div className="flex flex-wrap items-baseline gap-3 mb-5">
             <span className="text-2xl sm:text-3xl font-extrabold text-[#19244E]">{item.price}</span>
-            {item.calories != null && (
-              <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">{item.calories} kcal</span>
-            )}
             {unavailable && (
               <span className="rounded-sm bg-neutral-200 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-700">
                 {item.status || 'Unavailable'}
               </span>
             )}
           </div>
+
+          {unavailable && (
+            <p role="status" className="mb-5 rounded-xl bg-neutral-100 px-4 py-3 text-xs font-semibold text-neutral-600">
+              {item.status === 'PAUSED'
+                ? 'Our menu is paused right now. Please check back during opening hours.'
+                : "This item isn't available right now. Please ask our staff or check back soon."}
+            </p>
+          )}
 
           <div className="w-full border-b border-dashed border-neutral-300 mb-6 shrink-0" />
 
@@ -134,9 +139,7 @@ export const ItemDetailsModal = ({ item, onClose }) => {
                 {addOns.map((addOn) => (
                   <li key={addOn.name} className="flex justify-between gap-3 text-sm text-[#111111]/85">
                     <span>{addOn.name}</span>
-                    {addOn.price != null && (
-                      <span className="font-bold text-[#19244E]">+₱{Number(addOn.price)}</span>
-                    )}
+                    {addOn.price != null && <span className="font-bold text-[#19244E]">+₱{Number(addOn.price)}</span>}
                   </li>
                 ))}
               </ul>

@@ -10,6 +10,13 @@ import {
   primaryButtonClass,
 } from "./formStyles";
 
+const NAME_MAX = 80;
+const DESCRIPTION_MAX = 500;
+const FLAVOR_MAX = 100;
+const ADD_ON_NAME_MAX = 40;
+const PRICE_MAX = 99999;
+const ADD_ON_PRICE_MAX = 9999;
+
 const temperatureOptions = ["Hot", "Iced"];
 const dietaryTags = ["Dairy", "Nuts", "Gluten", "Egg", "Soy", "Vegan", "Vegetarian", "Caffeine-Free"];
 
@@ -18,11 +25,18 @@ const newAddOn = (name = "", price = "") => ({ id: nextAddOnId++, name, price })
 
 function FieldError({ id, message }) {
   if (!message) return null;
-
   return (
     <p id={id} className="mt-1.5 text-xs font-semibold text-rose-600">
       {message}
     </p>
+  );
+}
+
+function Counter({ value, max }) {
+  return (
+    <span className={`text-[11px] font-semibold ${value.length > max ? "text-rose-600" : "text-gray-400"}`}>
+      {value.length}/{max}
+    </span>
   );
 }
 
@@ -43,7 +57,7 @@ function TogglePill({ selected, onClick, children }) {
   );
 }
 
-export default function ItemModal({ item, categories, onCancel, onSave, onArchive }) {
+export default function ItemModal({ item, categories, saving = false, onCancel, onSave, onArchive }) {
   const [form, setForm] = useState(() => ({
     name: item?.name ?? "",
     category: item?.category ?? "",
@@ -51,9 +65,9 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
     available: item?.available ?? true,
     description: item?.description ?? "",
     image: item?.image ?? "",
+    imageFile: null,
     temperatures: item?.temperatures ?? [],
     flavor: item?.flavor ?? "",
-    calories: item?.calories == null ? "" : String(item.calories),
     tags: item?.tags ?? [],
     addOns: (item?.addOns ?? []).map((addOn) => newAddOn(addOn.name, String(addOn.price))),
   }));
@@ -75,19 +89,18 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
         : [...current[field], value],
     }));
 
-  const updateAddOn = (id, field, value) =>
+  const updateAddOn = (id, field, value) => {
     setForm((current) => ({
       ...current,
       addOns: current.addOns.map((addOn) => (addOn.id === id ? { ...addOn, [field]: value } : addOn)),
     }));
+    setErrors((current) => ({ ...current, addOns: "" }));
+  };
 
   const removeAddOn = (id) =>
-    setForm((current) => ({
-      ...current,
-      addOns: current.addOns.filter((addOn) => addOn.id !== id),
-    }));
+    setForm((current) => ({ ...current, addOns: current.addOns.filter((addOn) => addOn.id !== id) }));
 
-  // Preview only: the picked file stays in the browser and is never uploaded.
+  // The picked file is uploaded when the item is saved.
   const pickImage = (file) => {
     if (!file?.type.startsWith("image/")) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -95,30 +108,55 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
       return;
     }
     setForm((current) => ({ ...current, image: URL.createObjectURL(file), imageFile: file }));
+    setErrors((current) => ({ ...current, image: "" }));
+  };
+
+  const validate = () => {
+    const name = form.name.trim();
+    const price = Number(form.price);
+    const filledAddOns = form.addOns.filter((addOn) => addOn.name.trim() || addOn.price !== "");
+    const badAddOn = filledAddOns.find((addOn) => {
+      const addOnPrice = addOn.price === "" ? 0 : Number(addOn.price);
+      return (
+        !addOn.name.trim() ||
+        addOn.name.trim().length > ADD_ON_NAME_MAX ||
+        Number.isNaN(addOnPrice) ||
+        addOnPrice < 0 ||
+        addOnPrice > ADD_ON_PRICE_MAX
+      );
+    });
+
+    const next = {
+      name: !name ? "Item Name is required." : name.length > NAME_MAX ? `Use ${NAME_MAX} characters or fewer.` : "",
+      category: form.category ? "" : "Choose a category.",
+      price:
+        form.price === "" || Number.isNaN(price) || price <= 0
+          ? "Enter a price greater than 0."
+          : price > PRICE_MAX
+            ? `Price must be ₱${PRICE_MAX.toLocaleString()} or less.`
+            : "",
+      description:
+        form.description.trim().length > DESCRIPTION_MAX ? `Use ${DESCRIPTION_MAX} characters or fewer.` : "",
+      flavor: form.flavor.trim().length > FLAVOR_MAX ? `Use ${FLAVOR_MAX} characters or fewer.` : "",
+      addOns: badAddOn
+        ? `Each add-on needs a name (up to ${ADD_ON_NAME_MAX} characters) and a price from 0 to ₱${ADD_ON_PRICE_MAX.toLocaleString()}.`
+        : "",
+    };
+    setErrors(next);
+    if (next.description || next.flavor || next.addOns) setShowMore(true);
+    return !Object.values(next).some(Boolean);
   };
 
   const submit = (event) => {
     event.preventDefault();
-    const name = form.name.trim();
-    const price = Number(form.price);
-    const nextErrors = {
-      name: name ? "" : "Item Name is required.",
-      category: form.category ? "" : "Choose a category.",
-      price: form.price && price > 0 ? "" : "Enter a price greater than 0.",
-    };
-
-    if (Object.values(nextErrors).some(Boolean)) {
-      setErrors(nextErrors);
-      return;
-    }
+    if (saving || !validate()) return;
 
     onSave({
       ...form,
-      name,
-      price,
+      name: form.name.trim(),
+      price: Number(form.price),
       description: form.description.trim(),
       flavor: form.flavor.trim(),
-      calories: form.calories === "" ? null : Number(form.calories),
       addOns: form.addOns
         .filter((addOn) => addOn.name.trim())
         .map((addOn) => ({ name: addOn.name.trim(), price: Number(addOn.price) || 0 })),
@@ -131,7 +169,8 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
         <button
           type="button"
           onClick={() => setConfirmArchive(true)}
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-300 px-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50"
+          disabled={saving}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-300 px-4 text-sm font-bold text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
         >
           <Archive size={16} />
           Archive Item
@@ -141,11 +180,16 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
-        <button type="button" onClick={onCancel} className={cancelButtonClass}>
+        <button type="button" onClick={onCancel} disabled={saving} className={cancelButtonClass}>
           Cancel
         </button>
-        <button type="submit" form="item-form" className={primaryButtonClass}>
-          {item ? "Save Changes" : "Add Item"}
+        <button
+          type="submit"
+          form="item-form"
+          disabled={saving}
+          className={`${primaryButtonClass} disabled:cursor-wait disabled:opacity-60`}
+        >
+          {saving ? "Saving..." : item ? "Save Changes" : "Add Item"}
         </button>
       </div>
     </div>
@@ -155,9 +199,9 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
     <>
       <ModalWrapper
         title={item ? "Edit Item" : "Add New Item"}
-        description={item ? `Update the details for ${item.name}.` : "Add a new item to the sample menu."}
+        description={item ? `Update the details for ${item.name}.` : "Add a new item to the menu."}
         footer={footer}
-        onClose={onCancel}
+        onClose={saving ? undefined : onCancel}
         maxWidth="max-w-4xl"
       >
         <form id="item-form" onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2 sm:gap-x-6">
@@ -183,10 +227,8 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                 ) : (
                   <>
                     <ImagePlus size={24} className="text-[#E58422]" />
-                    <span className="text-sm font-bold text-[#19244E]">
-                      Drag an image here or click to upload
-                    </span>
-                    <span className="text-xs text-gray-400">PNG or JPG</span>
+                    <span className="text-sm font-bold text-[#19244E]">Drag an image here or click to upload</span>
+                    <span className="text-xs text-gray-400">PNG or JPG, up to 5 MB</span>
                   </>
                 )}
                 <input
@@ -200,6 +242,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                   className="sr-only"
                 />
               </label>
+              <FieldError id="item-image-error" message={errors.image} />
               {form.image && (
                 <div className="mt-1 flex justify-end">
                   <button
@@ -214,13 +257,17 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
             </div>
 
             <div>
-              <label htmlFor="item-name" className={labelClass}>
-                Item Name <span className="text-rose-500">*</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="item-name" className={labelClass}>
+                  Item Name <span className="text-rose-500">*</span>
+                </label>
+                <Counter value={form.name} max={NAME_MAX} />
+              </div>
               <input
                 id="item-name"
                 type="text"
                 value={form.name}
+                maxLength={NAME_MAX + 10}
                 onChange={(event) => update("name", event.target.value)}
                 autoFocus
                 aria-invalid={Boolean(errors.name)}
@@ -260,6 +307,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                   type="number"
                   inputMode="decimal"
                   min="0"
+                  max={PRICE_MAX}
                   step="0.01"
                   value={form.price}
                   onChange={(event) => update("price", event.target.value)}
@@ -280,7 +328,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                 className={inputClass}
               >
                 <option value="available">Available</option>
-                <option value="unavailable">Unavailable</option>
+                <option value="unavailable">Unavailable (still shown on the menu)</option>
               </select>
             </div>
 
@@ -296,69 +344,62 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
             </button>
 
             <div className={`${showMore ? "block" : "hidden"} sm:block`}>
-              <label htmlFor="item-description" className={labelClass}>Description</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="item-description" className={labelClass}>Description</label>
+                <Counter value={form.description} max={DESCRIPTION_MAX} />
+              </div>
               <textarea
                 id="item-description"
                 rows={3}
                 value={form.description}
                 onChange={(event) => update("description", event.target.value)}
-                className={textareaClass}
+                aria-invalid={Boolean(errors.description)}
+                aria-describedby={errors.description ? "item-description-error" : undefined}
+                className={`${textareaClass} ${errors.description ? "border-rose-400" : ""}`}
               />
+              <FieldError id="item-description-error" message={errors.description} />
             </div>
           </div>
 
           <div id="item-more" className={`${showMore ? "block" : "hidden"} space-y-4 sm:block`}>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className={labelClass}>Temperature Options</p>
-                <div className="flex gap-2">
-                  {temperatureOptions.map((option) => (
-                    <TogglePill
-                      key={option}
-                      selected={form.temperatures.includes(option)}
-                      onClick={() => toggleInList("temperatures", option)}
-                    >
-                      {option}
-                    </TogglePill>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="item-calories" className={labelClass}>Calories (kcal)</label>
-                <input
-                  id="item-calories"
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  value={form.calories}
-                  onChange={(event) => update("calories", event.target.value)}
-                  className={fieldClass({ height: "h-11 sm:h-9" })}
-                />
+            <div>
+              <p className={labelClass}>Temperature Options</p>
+              <div className="flex gap-2">
+                {temperatureOptions.map((option) => (
+                  <TogglePill
+                    key={option}
+                    selected={form.temperatures.includes(option)}
+                    onClick={() => toggleInList("temperatures", option)}
+                  >
+                    {option}
+                  </TogglePill>
+                ))}
               </div>
             </div>
 
             <div>
-              <label htmlFor="item-flavor" className={labelClass}>Flavor Profile</label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="item-flavor" className={labelClass}>Flavor Profile</label>
+                <Counter value={form.flavor} max={FLAVOR_MAX} />
+              </div>
               <input
                 id="item-flavor"
                 type="text"
                 value={form.flavor}
                 onChange={(event) => update("flavor", event.target.value)}
                 placeholder="e.g. Nutty, caramel, cocoa"
-                className={inputClass}
+                aria-invalid={Boolean(errors.flavor)}
+                aria-describedby={errors.flavor ? "item-flavor-error" : undefined}
+                className={fieldClass({ error: Boolean(errors.flavor) })}
               />
+              <FieldError id="item-flavor-error" message={errors.flavor} />
             </div>
 
             <div>
               <p className={labelClass}>Allergen / Dietary Tags</p>
               <div className="flex flex-wrap gap-2">
                 {dietaryTags.map((tag) => (
-                  <TogglePill
-                    key={tag}
-                    selected={form.tags.includes(tag)}
-                    onClick={() => toggleInList("tags", tag)}
-                  >
+                  <TogglePill key={tag} selected={form.tags.includes(tag)} onClick={() => toggleInList("tags", tag)}>
                     {tag}
                   </TogglePill>
                 ))}
@@ -374,6 +415,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                       <input
                         type="text"
                         value={addOn.name}
+                        maxLength={ADD_ON_NAME_MAX + 10}
                         onChange={(event) => updateAddOn(addOn.id, "name", event.target.value)}
                         placeholder="e.g. Extra shot"
                         aria-label={`Add-on ${index + 1} name`}
@@ -383,6 +425,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                         type="number"
                         inputMode="decimal"
                         min="0"
+                        max={ADD_ON_PRICE_MAX}
                         step="0.01"
                         value={addOn.price}
                         onChange={(event) => updateAddOn(addOn.id, "price", event.target.value)}
@@ -402,10 +445,11 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
                   ))}
                 </ul>
               )}
+              <FieldError id="item-addons-error" message={errors.addOns} />
               <button
                 type="button"
                 onClick={() => setForm((current) => ({ ...current, addOns: [...current.addOns, newAddOn()] }))}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-orange-200 px-4 text-xs font-bold text-[#B96916] transition hover:bg-orange-50 sm:min-h-9"
+                className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-xl border border-dashed border-orange-200 px-4 text-xs font-bold text-[#B96916] transition hover:bg-orange-50 sm:min-h-9"
               >
                 <Plus size={15} />
                 Add Add-on
@@ -418,7 +462,7 @@ export default function ItemModal({ item, categories, onCancel, onSave, onArchiv
       {confirmArchive && (
         <ModalWrapper
           title="Archive this item?"
-          description={`${item.name} will be removed from the menu catalog.`}
+          description={`${item.name} will be removed from the menu catalog and the customer menu.`}
           onClose={() => setConfirmArchive(false)}
         >
           <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">

@@ -47,7 +47,7 @@ export const CustomerApp = ({ onOpenAdminLogin }) => {
     location.pathname.startsWith('/our-story') ? 'story' : 'home';
 
   // Menu data: favorites on the home page, and lookups for announcement links.
-  const { data: menuItems } = useMenuItems({ availableOnly: true });
+  const { data: menuItems } = useMenuItems();
   const { data: categories } = useCategories({ activeOnly: true });
   const favorites = buildFavorites(menuItems, categories);
   const menuDisplayItems = buildMenuItems(menuItems, categories);

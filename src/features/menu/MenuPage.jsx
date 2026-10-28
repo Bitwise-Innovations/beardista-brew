@@ -27,7 +27,7 @@ const ICON_HINTS = [
 const iconFor = (name) => ICON_HINTS.find(([pattern]) => pattern.test(name))?.[1] ?? '☕';
 
 export default function MenuPage({ onNavigate, onSelectItem }) {
-  const itemsQuery = useMenuItems({ availableOnly: true });
+  const itemsQuery = useMenuItems();
   const categoriesQuery = useCategories({ activeOnly: true });
   const settingsQuery = useStoreSettings();
 

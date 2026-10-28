@@ -35,13 +35,13 @@ import {
 } from "../../../backend/hooks/useMenu";
 import { useStoreSettings, useUpdateStoreSetting } from "../../../backend/hooks/useContent";
 import {
+  categoryErrorMessage,
   savedUrl,
   toAdminCategory,
   toAdminItem,
   toCategoryPayload,
   toItemPayload,
 } from "../../../backend/mappers/adminMenuMapper";
-
 const ALL_ITEMS = "All Items";
 const MENU_ONLINE_KEY = "menu_online";
 
@@ -225,11 +225,9 @@ export default function MenuManagement() {
           : `${values.name} category was ${editing ? "updated" : "created"}.`
       );
       closeModal();
-    } catch {
-      setNotice(`We couldn't save ${values.name}. Please try again.`);
+        } catch (error) {
+      setNotice(categoryErrorMessage(error, values.name));
     } finally {
-      setSaving(false);
-    }
   };
 
   if (itemsQuery.isPending || categoriesQuery.isPending) {
@@ -281,8 +279,9 @@ export default function MenuManagement() {
 
       {modal?.type === "item" && (
         <ItemModal
-          item={modal.item}
+        item={modal.item}
           categories={sortedCategories.map((entry) => entry.name)}
+          saving={saving}
           onCancel={closeModal}
           onSave={saveItem}
           onArchive={archiveItem}
@@ -296,6 +295,7 @@ export default function MenuManagement() {
             (name) => name !== modal.category?.name
           )}
           defaultPriority={Math.max(0, ...categories.map((entry) => entry.priority)) + 1}
+          saving={saving}
           onCancel={closeModal}
           onSave={saveCategory}
         />
@@ -609,4 +609,5 @@ export default function MenuManagement() {
       </DataCard>
     </div>
   );
+}
 }

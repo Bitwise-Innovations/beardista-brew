@@ -9,7 +9,11 @@ import {
   cancelButtonClass,
   primaryButtonClass,
 } from "./formStyles";
-import { categoryGroups, toSlug } from "./categoryUtils";
+import { categoryGroups } from "./categoryUtils";
+
+const NAME_MAX = 40;
+const DESCRIPTION_MAX = 200;
+const PRIORITY_MAX = 999;
 
 const highlightColors = [
   { name: "Brand Orange", value: "#E58422" },
@@ -27,10 +31,28 @@ const categoryBadges = [
   { name: "food", label: "Food", icon: UtensilsCrossed },
 ];
 
+function FieldError({ id, message }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1.5 text-xs font-semibold text-rose-600">
+      {message}
+    </p>
+  );
+}
+
+function Counter({ value, max }) {
+  return (
+    <span className={`text-[11px] font-semibold ${value.length > max ? "text-rose-600" : "text-gray-400"}`}>
+      {value.length}/{max}
+    </span>
+  );
+}
+
 export default function CategoryModal({
   category,
   existingNames,
   defaultPriority,
+  saving = false,
   onCancel,
   onSave,
 }) {
@@ -38,46 +60,65 @@ export default function CategoryModal({
     name: category?.name ?? "",
     priority: String(category?.priority ?? defaultPriority),
     description: category?.description ?? "",
-    group: category?.group ?? categoryGroups[0],
+    group: category?.group || categoryGroups[0],
     color: category?.color ?? highlightColors[0].value,
     badge: category?.badge ?? "",
     iconImage: category?.iconImage ?? "",
+    iconFile: null,
     showOnMenu: category?.showOnMenu ?? true,
   }));
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
   const [showMore, setShowMore] = useState(false);
-  const slug = toSlug(form.name);
 
-  const update = (field, value) =>
+  const update = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: "" }));
+  };
 
-  // Preview only: the picked file stays in the browser and is never uploaded.
-   const chooseIcon = (event) => {
+  // The picked file is uploaded when the category is saved.
+  const chooseIcon = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setForm((current) => ({
-        ...current,
-        iconImage: URL.createObjectURL(file),
-        iconFile: file,
-        badge: "",
-      }));
+    if (file?.type.startsWith("image/")) {
+      if (file.size > 2 * 1024 * 1024) {
+        setErrors((current) => ({ ...current, icon: "Icon must be 2 MB or smaller." }));
+      } else {
+        setForm((current) => ({ ...current, iconImage: URL.createObjectURL(file), iconFile: file, badge: "" }));
+        setErrors((current) => ({ ...current, icon: "" }));
+      }
     }
     event.target.value = "";
   };
 
-  const save = (status) => {
+  const validate = () => {
     const name = form.name.trim();
+    const priority = Number(form.priority);
+    const next = {
+      name: !name
+        ? "Category Name is required."
+        : name.length > NAME_MAX
+          ? `Use ${NAME_MAX} characters or fewer.`
+          : existingNames.some((existing) => existing.toLowerCase() === name.toLowerCase())
+            ? `"${name}" already exists.`
+            : "",
+      description:
+        form.description.trim().length > DESCRIPTION_MAX ? `Use ${DESCRIPTION_MAX} characters or fewer.` : "",
+      priority:
+        form.priority === "" || !Number.isInteger(priority) || priority < 0 || priority > PRIORITY_MAX
+          ? `Enter a whole number from 0 to ${PRIORITY_MAX}.`
+          : "",
+    };
+    setErrors(next);
+    // Extra fields are hidden on phones: open them if one of their fields has an error.
+    if (next.description || next.priority) setShowMore(true);
+    return !Object.values(next).some(Boolean);
+  };
 
-    if (!name) return setError("Category Name is required.");
-    if (existingNames.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
-      return setError(`"${name}" already exists.`);
-    }
-
+  const save = (status) => {
+    if (saving || !validate()) return;
     onSave({
       ...form,
-      name,
-      slug,
-      priority: Number(form.priority) || 0,
+      name: form.name.trim(),
+      priority: Number(form.priority),
       description: form.description.trim(),
       status,
     });
@@ -90,18 +131,24 @@ export default function CategoryModal({
 
   const footer = (
     <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
-      <button type="button" onClick={onCancel} className={cancelButtonClass}>
+      <button type="button" onClick={onCancel} disabled={saving} className={cancelButtonClass}>
         Cancel
       </button>
       <button
         type="button"
         onClick={() => save("draft")}
-        className="min-h-11 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-bold text-[#B96916] transition hover:bg-orange-100"
+        disabled={saving}
+        className="min-h-11 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-bold text-[#B96916] transition hover:bg-orange-100 disabled:cursor-wait disabled:opacity-60"
       >
         Save as Draft
       </button>
-      <button type="submit" form="category-form" className={`col-span-2 ${primaryButtonClass}`}>
-        {category ? "Save Changes" : "Create Category"}
+      <button
+        type="submit"
+        form="category-form"
+        disabled={saving}
+        className={`col-span-2 ${primaryButtonClass} disabled:cursor-wait disabled:opacity-60`}
+      >
+        {saving ? "Saving..." : category ? "Save Changes" : "Create Category"}
       </button>
     </div>
   );
@@ -111,33 +158,29 @@ export default function CategoryModal({
       title={category ? "Edit Category" : "Add Category"}
       description="Group menu items so customers can browse them easily."
       footer={footer}
-      onClose={onCancel}
+      onClose={saving ? undefined : onCancel}
       maxWidth="max-w-2xl"
     >
-      {/* Phones show the essentials first; sm:contents lets the extra fields join the desktop grid. */}
       <form id="category-form" onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
         <div className="sm:order-2">
-          <label htmlFor="category-name" className={labelClass}>
-            Category Name <span className="text-rose-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="category-name" className={labelClass}>
+              Category Name <span className="text-rose-500">*</span>
+            </label>
+            <Counter value={form.name} max={NAME_MAX} />
+          </div>
           <input
             id="category-name"
             type="text"
             value={form.name}
-            onChange={(event) => {
-              update("name", event.target.value);
-              setError("");
-            }}
+            maxLength={NAME_MAX + 10}
+            onChange={(event) => update("name", event.target.value)}
             autoFocus
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "category-name-error" : undefined}
-            className={fieldClass({ error: Boolean(error) })}
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? "category-name-error" : undefined}
+            className={fieldClass({ error: Boolean(errors.name) })}
           />
-          {error && (
-            <p id="category-name-error" className="mt-1.5 text-xs font-semibold text-rose-600">
-              {error}
-            </p>
-          )}
+          <FieldError id="category-name-error" message={errors.name} />
         </div>
 
         <div className="sm:order-5">
@@ -157,9 +200,7 @@ export default function CategoryModal({
         <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 py-1 pl-4 pr-1 sm:order-8 sm:self-end">
           <div className="min-w-0">
             <p className="text-sm font-bold text-[#19244E]">Show on Menu</p>
-            <p className="text-xs text-gray-500">
-              {form.showOnMenu ? "Visible to customers" : "Hidden from customers"}
-            </p>
+            <p className="text-xs text-gray-500">{form.showOnMenu ? "Visible to customers" : "Hidden from customers"}</p>
           </div>
           <ToggleSwitch
             checked={form.showOnMenu}
@@ -179,10 +220,7 @@ export default function CategoryModal({
           <ChevronDown size={18} className={`transition-transform ${showMore ? "rotate-180" : ""}`} />
         </button>
 
-        <div
-          id="category-more"
-          className={`${showMore ? "grid" : "hidden"} grid-cols-2 gap-4 sm:contents`}
-        >
+        <div id="category-more" className={`${showMore ? "grid" : "hidden"} grid-cols-2 gap-4 sm:contents`}>
           <div className="col-span-2 sm:order-1">
             <p className={labelClass}>Category Icon</p>
             <div className="flex flex-wrap items-center gap-3">
@@ -192,19 +230,12 @@ export default function CategoryModal({
                 ) : (
                   <ImagePlus size={22} />
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={chooseIcon}
-                  aria-label="Upload category icon"
-                  className="sr-only"
-                />
+                <input type="file" accept="image/*" onChange={chooseIcon} aria-label="Upload category icon" className="sr-only" />
               </label>
               <span className="text-xs font-semibold text-gray-400">or pick a badge</span>
               <div className="flex gap-1.5">
                 {categoryBadges.map(({ name, label, icon: Icon }) => {
                   const selected = form.badge === name;
-
                   return (
                     <button
                       key={name}
@@ -214,9 +245,7 @@ export default function CategoryModal({
                       aria-label={label}
                       title={label}
                       className={`flex h-11 w-11 items-center justify-center rounded-xl border transition ${
-                        selected
-                          ? "border-[#E58422] bg-[#FFF3E7] text-[#E58422]"
-                          : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                        selected ? "border-[#E58422] bg-[#FFF3E7] text-[#E58422]" : "border-gray-200 text-gray-500 hover:bg-gray-50"
                       }`}
                     >
                       <Icon size={18} />
@@ -224,19 +253,17 @@ export default function CategoryModal({
                   );
                 })}
               </div>
+              {form.iconImage && (
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, iconImage: "", iconFile: null }))}
+                  className="min-h-11 rounded-xl px-3 text-xs font-bold text-rose-600 hover:bg-rose-50"
+                >
+                  Remove icon
+                </button>
+              )}
             </div>
-          </div>
-
-          <div className="sm:order-3">
-            <label htmlFor="category-slug" className={labelClass}>Slug</label>
-            <input
-              id="category-slug"
-              type="text"
-              value={slug}
-              readOnly
-              placeholder="auto-generated"
-              className={`${fieldClass({ background: "bg-gray-100" })} cursor-default`}
-            />
+            <FieldError id="category-icon-error" message={errors.icon} />
           </div>
 
           <div className="sm:order-4">
@@ -246,21 +273,32 @@ export default function CategoryModal({
               type="number"
               inputMode="numeric"
               min="0"
+              max={PRIORITY_MAX}
+              step="1"
               value={form.priority}
               onChange={(event) => update("priority", event.target.value)}
-              className={inputClass}
+              aria-invalid={Boolean(errors.priority)}
+              aria-describedby={errors.priority ? "category-priority-error" : undefined}
+              className={fieldClass({ error: Boolean(errors.priority) })}
             />
+            <FieldError id="category-priority-error" message={errors.priority} />
           </div>
 
           <div className="col-span-2 sm:order-6">
-            <label htmlFor="category-description" className={labelClass}>Description</label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="category-description" className={labelClass}>Description</label>
+              <Counter value={form.description} max={DESCRIPTION_MAX} />
+            </div>
             <textarea
               id="category-description"
               rows={2}
               value={form.description}
               onChange={(event) => update("description", event.target.value)}
-              className={textareaClass}
+              aria-invalid={Boolean(errors.description)}
+              aria-describedby={errors.description ? "category-description-error" : undefined}
+              className={`${textareaClass} ${errors.description ? "border-rose-400" : ""}`}
             />
+            <FieldError id="category-description-error" message={errors.description} />
           </div>
 
           <div className="col-span-2 sm:order-7 sm:col-span-1">
@@ -278,9 +316,7 @@ export default function CategoryModal({
                 >
                   <span
                     style={{ backgroundColor: value }}
-                    className={`h-7 w-7 rounded-full ring-offset-2 transition ${
-                      form.color === value ? "ring-2 ring-[#19244E]" : ""
-                    }`}
+                    className={`h-7 w-7 rounded-full ring-offset-2 transition ${form.color === value ? "ring-2 ring-[#19244E]" : ""}`}
                   />
                 </button>
               ))}
